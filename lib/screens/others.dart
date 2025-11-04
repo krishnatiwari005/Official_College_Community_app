@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'othersdetail/study_academic_page.dart';
+import 'othersdetail/academic_feature.dart';
 import 'othersdetail/mental_health_page.dart';
 import 'othersdetail/leaderboard_page.dart';
 import 'othersdetail/cultural_tech_page.dart';
@@ -15,7 +15,7 @@ class OthersScreen extends StatelessWidget {
         'title': 'Study & Academic',
         'icon': Icons.school,
         'color': Colors.blue,
-        'page': const StudyAcademicPage(),
+        'page': const AcademicFeature(),
       },
       {
         'title': 'Mental Health & Wellness',
