@@ -21,13 +21,13 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Fade controller for logo
+    
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..forward();
 
-    // Typewriter animation for tagline
+  
     Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (textIndex < fullText.length) {
         setState(() {
@@ -39,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    // Navigate to login page after 4 seconds
+   
     Timer(const Duration(seconds: 5), () {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Lottie animation
+               
                 Lottie.asset(
                   'assets/animations/college_loader.json',
                   width: 220,
