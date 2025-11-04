@@ -35,7 +35,7 @@ class OthersScreen extends StatelessWidget {
         'color': Colors.purple,
         'page': const CulturalTechPage(),
       },
-    ];
+      ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Others')),
