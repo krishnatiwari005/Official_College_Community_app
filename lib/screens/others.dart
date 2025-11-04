@@ -35,12 +35,7 @@ class OthersScreen extends StatelessWidget {
         'color': Colors.purple,
         'page': const CulturalTechPage(),
       },
-    final menuItems = [
-      {'title': 'Study & Academic', 'icon': Icons.school, 'color': Colors.blue, 'page': const StudyAcademicPage()},
-      {'title': 'Mental Health & Wellness', 'icon': Icons.self_improvement, 'color': Colors.green, 'page': const MentalHealthPage()},
-      {'title': 'Leaderboard', 'icon': Icons.emoji_events, 'color': Colors.orange, 'page': const LeaderboardPage()},
-      {'title': 'Cultural + Tech Society', 'icon': Icons.people, 'color': Colors.purple, 'page': const CulturalTechPage()},
-    ];
+      ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Others')),
