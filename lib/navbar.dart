@@ -19,18 +19,18 @@ class _NavBarPageState extends State<NavBarPage>
 
   final List<Widget> _pages = const [
     HomeScreen(),
-    ChatScreen(),
+    ChatPage(),
     PostScreen(),
     ProfileScreen(),
     OthersScreen(),
   ];
 
   final List<Color> _navColors = const [
-    Color(0xFFAEDFF7), 
-    Color.fromARGB(255, 161, 204, 245), 
-    Color(0xFFAEDFF7), 
-    Color.fromARGB(255, 161, 204, 245), 
-    Color(0xFFAEDFF7), 
+    Color(0xFFAEDFF7),
+    Color.fromARGB(255, 161, 204, 245),
+    Color(0xFFAEDFF7),
+    Color.fromARGB(255, 161, 204, 245),
+    Color(0xFFAEDFF7),
   ];
 
   @override
@@ -59,7 +59,6 @@ class _NavBarPageState extends State<NavBarPage>
         children: _pages,
       ),
 
-     
       bottomNavigationBar: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -70,64 +69,63 @@ class _NavBarPageState extends State<NavBarPage>
               ),
             ),
             child: AnimatedContainer(
-  duration: const Duration(milliseconds: 400),
-  curve: Curves.easeInOut,
-  color: _navColors[_currentIndex],
-  padding: const EdgeInsets.only(top: 10), 
-  height: 115, 
-  child: BottomNavigationBar(
-    currentIndex: _currentIndex,
-    onTap: (int index) {
-      setState(() {
-        _currentIndex = index;
-      });
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
-    },
-    elevation: 0,
-    backgroundColor: Colors.transparent,
-    selectedItemColor: const Color.fromARGB(255, 40, 86, 95),
-    unselectedItemColor: const Color.fromARGB(255, 137, 141, 144),
-    type: BottomNavigationBarType.fixed,
-    showSelectedLabels: true,
-    showUnselectedLabels: true,
-    items: List.generate(5, (index) {
-      const icons = [
-        Icons.home_outlined,
-        Icons.chat_outlined,
-        Icons.add,
-        Icons.person_outlined,
-        Icons.more_horiz_outlined,
-      ];
-      const activeIcons = [
-        Icons.home,
-        Icons.chat,
-        Icons.add,
-        Icons.person,
-        Icons.more_horiz,
-      ];
-      const labels = ['Home', 'Chat', 'Post', 'Profile', 'Others'];
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+              color: _navColors[_currentIndex],
+              padding: const EdgeInsets.only(top: 6), 
+              height: 70,  
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: (int index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                  _pageController.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+                selectedItemColor: const Color.fromARGB(255, 40, 86, 95),
+                unselectedItemColor: const Color.fromARGB(255, 137, 141, 144),
+                type: BottomNavigationBarType.fixed,
+                showSelectedLabels: true,
+                showUnselectedLabels: true,
+                items: List.generate(5, (index) {
+                  const icons = [
+                    Icons.home_outlined,
+                    Icons.chat_outlined,
+                    Icons.add,
+                    Icons.person_outlined,
+                    Icons.more_horiz_outlined,
+                  ];
+                  const activeIcons = [
+                    Icons.home,
+                    Icons.chat,
+                    Icons.add,
+                    Icons.person,
+                    Icons.more_horiz,
+                  ];
+                  const labels = ['Home', 'Chat', 'Post', 'Profile', 'Others'];
 
-      final isSelected = _currentIndex == index;
+                  final isSelected = _currentIndex == index;
 
-      return BottomNavigationBarItem(
-        icon: _BouncyIcon(
-          icon: icons[index],
-          activeIcon: activeIcons[index],
-          isActive: isSelected,
-        ),
-        label: labels[index],
-      );
-    }),
-  ),
-),
-
+                  return BottomNavigationBarItem(
+                    icon: _BouncyIcon(
+                      icon: icons[index],
+                      activeIcon: activeIcons[index],
+                      isActive: isSelected,
+                    ),
+                    label: labels[index],
+                  );
+                }),
+              ),
+            ),
           ),
           Positioned(
-            bottom: 6,
+            bottom: 3,  // ✅ Adjusted for smaller navbar
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
@@ -165,7 +163,6 @@ class _NavBarPageState extends State<NavBarPage>
   }
 }
 
-
 class _BouncyIcon extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
@@ -190,8 +187,9 @@ class _BouncyIcon extends StatelessWidget {
             scale: isActive ? 1.25 : 1.0,
             child: Icon(
               isActive ? activeIcon : icon,
-              color:
-                  isActive ? const Color.fromARGB(255, 6, 67, 188) : Colors.grey,
+              color: isActive
+                  ? const Color.fromARGB(255, 6, 67, 188)
+                  : Colors.grey,
             ),
           ),
         );

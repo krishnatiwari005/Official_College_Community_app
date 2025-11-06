@@ -3,14 +3,12 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// Auth token provider - stores the token globally
 final authTokenProvider = StateProvider<String?>((ref) => null);
 
-// User profile provider that uses the auth token
 final userProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   try {
     final baseUrl = 'https://college-community-app-backend.onrender.com';
-    final token = ref.watch(authTokenProvider); // ✅ Get token from provider
+    final token = ref.watch(authTokenProvider); 
 
     print('🔍 Token from provider: $token');
 

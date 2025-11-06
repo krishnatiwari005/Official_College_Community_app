@@ -112,7 +112,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
       });
 
       if (result['success']) {
-        // Store token if provided
         if (result['data']?['token'] != null) {
           PostService.setAuthToken(result['data']['token']);
         }
@@ -224,7 +223,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 30),
 
-                // Name Field
+                // Name
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -244,7 +243,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Email Field
+                // Email
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -268,7 +267,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
+                // Password
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
@@ -364,7 +363,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Interests Button
+                // Interests
                 InkWell(
                   onTap: _showInterestsDialog,
                   child: Container(
@@ -395,8 +394,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                     ),
                   ),
                 ),
-                
-                // Show selected interests as chips
+
                 if (_selectedInterests.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Wrap(
@@ -421,7 +419,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ],
                 const SizedBox(height: 30),
 
-                // Signup Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -453,7 +450,6 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

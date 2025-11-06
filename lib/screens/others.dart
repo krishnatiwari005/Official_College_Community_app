@@ -9,7 +9,6 @@ class OthersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // List of menu items with icons and titles
     final List<Map<String, dynamic>> menuItems = [
       {
         'title': 'Study & Academic',

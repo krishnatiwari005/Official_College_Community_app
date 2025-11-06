@@ -2,197 +2,260 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:video_player/video_player.dart';
 import '../providers/post_provider.dart';
+import '../providers/user_posts_provider.dart';
+import '../providers/posts_provider.dart';
+import '../providers/auth_notifier.dart';
 
-class PostScreen extends ConsumerStatefulWidget {
+class PostScreen extends ConsumerWidget {
   const PostScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<PostScreen> createState() => _PostScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final token = ref.watch(authTokenProvider);
+    final formState = ref.watch(postFormProvider);
+    final formNotifier = ref.read(postFormProvider.notifier);
 
-class _PostScreenState extends ConsumerState<PostScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  final _picker = ImagePicker();
-  
-  File? _mediaFile;
-  String? _mediaType;
-  VideoPlayerController? _videoController;
-  bool _isLoading = false;
+    print('🔍 PostScreen build - Token: ${token?.substring(0, 20) ?? "null"}...');
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    _videoController?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickMedia(ImageSource source, bool isVideo) async {
-    try {
-      final XFile? pickedFile = isVideo
-          ? await _picker.pickVideo(source: source)
-          : await _picker.pickImage(source: source);
-
-      if (pickedFile != null) {
-        setState(() {
-          _mediaFile = File(pickedFile.path);
-          _mediaType = isVideo ? 'video' : 'image';
-        });
-
-        if (isVideo) {
-          _videoController = VideoPlayerController.file(_mediaFile!)..initialize().then((_) => setState(() {}));
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  }
-
-  void _showMediaOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(children: [
-          ListTile(leading: const Icon(Icons.photo_library, color: Colors.blue), 
-          title: const Text('Gallery - Image'), 
-          onTap: () { Navigator.pop(context); _pickMedia(ImageSource.gallery, false); }),
-          ListTile(leading: const Icon(Icons.photo_camera, color: Colors.blue), 
-          title: const Text('Camera - Image'), 
-          onTap: () { Navigator.pop(context); _pickMedia(ImageSource.camera, false); }),
-          ListTile(leading: const Icon(Icons.video_library, color: Colors.purple), 
-          title: const Text('Gallery - Video'), 
-          onTap: () { Navigator.pop(context); _pickMedia(ImageSource.gallery, true); }),
-          ListTile(leading: const Icon(Icons.videocam, color: Colors.purple), 
-          title: const Text('Camera - Video'), 
-          onTap: () { Navigator.pop(context); _pickMedia(ImageSource.camera, true); }),
-        ]),
-      ),
-    );
-  }
-
-  void _removeMedia() {
-    setState(() {
-      _mediaFile = null;
-      _mediaType = null;
-      _videoController?.dispose();
-      _videoController = null;
-    });
-  }
-
-  Future<void> _createPost() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      ref.read(createPostProvider(
-        (
-          title: _titleController.text,
-          content: _contentController.text,
-          mediaFile: _mediaFile,
-          mediaType: _mediaType,
-          authorName: 'Current User',
-        ),
-      )).when(
-        data: (result) {
-          setState(() => _isLoading = false);
-          if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.green));
-            _titleController.clear();
-            _contentController.clear();
-            _removeMedia();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.red));
-          }
-        },
-        loading: () {},
-        error: (err, __) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $err'), backgroundColor: Colors.red));
-        },
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Post'), backgroundColor: Colors.blue),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+    if (token == null || token.isEmpty) {
+      print('❌ Not logged in - showing login prompt');
+      return Scaffold(
+        appBar: AppBar(title: const Text('Create Post')),
+        body: Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Share your thoughts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey)),
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text(
+                'Please login to create posts',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 24),
-              TextFormField(controller: _titleController, 
-              decoration: InputDecoration(labelText: 'Title', prefixIcon: const Icon(Icons.title), 
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), 
-              validator: (v) => (v?.length ?? 0) < 3 ? 'Min 3 chars' : null, maxLength: 100),
-              const SizedBox(height: 20),
-              TextFormField(controller: _contentController, 
-              decoration: InputDecoration(labelText: 'Content', prefixIcon: const Icon(Icons.description), 
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), 
-              alignLabelWithHint: true), 
-              maxLines: 5, 
-              maxLength: 500, 
-              validator: (v) => (v?.length ?? 0) < 10 ? 'Min 10 chars' : null),
-              const SizedBox(height: 20),
-              if (_mediaFile != null) ...[
-                Stack(children: [
-                  Container(height: 300, 
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), 
-                  border: Border.all(color: Colors.grey)), 
-                  child: ClipRRect(borderRadius: BorderRadius.circular(12), 
-                  child: _mediaType == 'image' ? 
-                  Image.file(_mediaFile!, fit: BoxFit.cover) : 
-                  _videoController != null && _videoController!.value.isInitialized ? 
-                  AspectRatio(aspectRatio: _videoController!.value.aspectRatio, 
-                  child: VideoPlayer(_videoController!)) : 
-                  const Center(child: CircularProgressIndicator()))),
-                  Positioned(top: 8, right: 8, 
-                  child: IconButton(icon: const Icon(Icons.close, color: Colors.white), 
-                  style: IconButton.styleFrom(backgroundColor: Colors.black54), 
-                  onPressed: _removeMedia)),
-                  if (_mediaType == 'video' && _videoController != null && _videoController!.value.isInitialized)
-                    Positioned(bottom: 8, right: 8, 
-                    child: IconButton(icon: Icon(_videoController!.value.isPlaying ? 
-                    Icons.pause : 
-                    Icons.play_arrow, color: Colors.white), 
-                    style: IconButton.styleFrom(backgroundColor: Colors.black54), 
-                    onPressed: () => setState(() => 
-                    _videoController!.value.isPlaying ? 
-                    _videoController!.pause() : 
-                    _videoController!.play()))),
-                ]),
-                const SizedBox(height: 20),
-              ],
-              OutlinedButton.icon(onPressed: _showMediaOptions, 
-              icon: const Icon(Icons.add_photo_alternate), 
-              label: Text(_mediaFile == null ? 
-              'Add Photo/Video' : 
-              'Change Photo/Video'), 
-              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)))),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createPost,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: _isLoading ? 
-                  const SizedBox(width: 24, height: 24, 
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : 
-                  const Text('Post', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
+              ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/login'),
+                child: const Text('Go to Login'),
               ),
             ],
           ),
+        ),
+      );
+    }
+
+    print('✅ Logged in - showing post form');
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Post'),
+        backgroundColor: Colors.blue,
+        elevation: 2,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (formState.error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        formState.error!,
+                        style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            const Text('Title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              onChanged: formNotifier.setTitle,
+              decoration: InputDecoration(
+                hintText: 'What\'s on your mind?',
+                prefixIcon: const Icon(Icons.title, color: Colors.blue),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
+                counterText: '${formState.title.length}/100',
+              ),
+              maxLength: 100,
+              enabled: !formState.isLoading,
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Description', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              onChanged: formNotifier.setDescription,
+              decoration: InputDecoration(
+                hintText: 'Tell us more...',
+                prefixIcon: const Icon(Icons.description, color: Colors.blue),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
+                alignLabelWithHint: true,
+                counterText: '${formState.description.length}/500',
+              ),
+              maxLines: 5,
+              maxLength: 500,
+              enabled: !formState.isLoading,
+            ),
+            const SizedBox(height: 16),
+
+            const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              onChanged: formNotifier.setCategory,
+              decoration: InputDecoration(
+                hintText: 'e.g., Academic, Events, General...',
+                prefixIcon: const Icon(Icons.category, color: Colors.blue),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              enabled: !formState.isLoading,
+            ),
+            const SizedBox(height: 16),
+
+            if (formState.mediaFile != null) ...[
+              const Text('Media Preview', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(formState.mediaFile!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => formNotifier.setMediaFile(null),
+                      child: Container(
+                        decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.close, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            GestureDetector(
+              onTap: () async {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                if (pickedFile != null) {
+                  formNotifier.setMediaFile(File(pickedFile.path));
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.blue.shade300, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.blue.shade50,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.blue.shade100, shape: BoxShape.circle),
+                      child: Icon(Icons.add_photo_alternate, color: Colors.blue.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            formState.mediaFile == null ? 'Add Photo' : 'Change Photo',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                          ),
+                          Text('Choose from gallery', style: TextStyle(fontSize: 12, color: Colors.blue.shade700)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: formState.isLoading
+                    ? null
+                    : () async {
+                        final result = await formNotifier.submitPost();
+                        if (!context.mounted) return;
+
+                        if (result['success']) {
+                          print('✅ Post created successfully');
+ 
+                          ref.refresh(userPostsProvider);
+                          print('🔄 User posts refreshed');
+                  
+                          ref.refresh(postsProvider);
+                          print('🔄 Posts feed refreshed');
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Post created!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          formNotifier.resetForm();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('❌ ${result['message']}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: formState.isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Post Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
