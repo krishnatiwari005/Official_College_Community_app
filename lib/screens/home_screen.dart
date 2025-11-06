@@ -1,4 +1,5 @@
 import 'package:community_app/providers/posts_provider.dart';
+import 'package:community_app/providers/posts_provider.dart';
 import 'package:community_app/screens/chatbot.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -192,11 +193,21 @@ class _PostCardState extends State<PostCard> {
     super.initState();
     if (widget.post['mediaType'] == 'video' &&
         widget.post['mediaUrl'] != null) {
+    if (widget.post['mediaType'] == 'video' &&
+        widget.post['mediaUrl'] != null) {
       _initializeVideo();
     }
   }
 
   Future<void> _initializeVideo() async {
+    try {
+      _videoController =
+          VideoPlayerController.network(widget.post['mediaUrl']);
+      await _videoController!.initialize();
+      setState(() => _isVideoInitialized = true);
+    } catch (e) {
+      print('❌ Video init error: $e');
+    }
     try {
       _videoController =
           VideoPlayerController.network(widget.post['mediaUrl']);
@@ -235,11 +246,35 @@ class _PostCardState extends State<PostCard> {
                     ),
                   ),
                 ),
+                CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Text(
+                    widget.post['authorName']?[0]?.toUpperCase() ?? 'A',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        widget.post['authorName'] ?? 'Anonymous',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        _formatTimestamp(widget.post['createdAt']),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
                       Text(
                         widget.post['authorName'] ?? 'Anonymous',
                         style: const TextStyle(
@@ -261,9 +296,91 @@ class _PostCardState extends State<PostCard> {
                   icon: const Icon(Icons.more_vert),
                   onPressed: () {},
                 ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {},
+                ),
               ],
             ),
           ),
+          if (widget.post['mediaUrl'] != null &&
+              widget.post['mediaType'] == 'image')
+            Container(
+              width: double.infinity,
+              height: 250,
+              color: Colors.grey[300],
+              child: Image.network(
+                widget.post['mediaUrl'],
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  print('❌ Image error: $error');
+                  print('   URL: ${widget.post['mediaUrl']}');
+
+                  if (error.toString().contains('404')) {
+                    return Container(
+                      height: 250,
+                      color: Colors.grey[300],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Image not available',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    height: 250,
+                    color: Colors.grey[300],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Image failed to load',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                cacheHeight: 500,
+                cacheWidth: 1200,
+              ),
+            )
           if (widget.post['mediaUrl'] != null &&
               widget.post['mediaType'] == 'image')
             Container(
@@ -366,7 +483,35 @@ class _PostCardState extends State<PostCard> {
                 ],
               ),
             )
+            AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  VideoPlayer(_videoController!),
+                  IconButton(
+                    icon: Icon(
+                      _videoController!.value.isPlaying
+                          ? Icons.pause_circle_outline
+                          : Icons.play_circle_outline,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => setState(
+                      () => _videoController!.value.isPlaying
+                          ? _videoController!.pause()
+                          : _videoController!.play(),
+                    ),
+                  ),
+                ],
+              ),
+            )
           else if (widget.post['mediaType'] == 'video')
+            Container(
+              height: 250,
+              color: Colors.grey[300],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
             Container(
               height: 250,
               color: Colors.grey[300],
@@ -376,6 +521,18 @@ class _PostCardState extends State<PostCard> {
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.favorite_border),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  icon: const Icon(Icons.comment_outlined),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  onPressed: () {},
+                ),
                 IconButton(
                   icon: const Icon(Icons.favorite_border),
                   onPressed: () {},
@@ -403,7 +560,18 @@ class _PostCardState extends State<PostCard> {
                     fontSize: 16,
                   ),
                 ),
+                Text(
+                  widget.post['title'] ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 4),
+                Text(
+                  widget.post['description'] ?? '',
+                  style: const TextStyle(fontSize: 14),
+                ),
                 Text(
                   widget.post['description'] ?? '',
                   style: const TextStyle(fontSize: 14),
@@ -477,6 +645,8 @@ class _MovableChatBotButtonState extends State<MovableChatBotButton>
         onPanUpdate: (details) {
           setState(() {
             x = (x + details.delta.dx).clamp(0.0, screenSize.width - buttonSize);
+            y = (y + details.delta.dy)
+                .clamp(0.0, screenSize.height - buttonSize - 80);
             y = (y + details.delta.dy)
                 .clamp(0.0, screenSize.height - buttonSize - 80);
           });
