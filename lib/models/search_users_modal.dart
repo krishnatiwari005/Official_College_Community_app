@@ -1,3 +1,4 @@
+import 'package:community_app/screens/user_profile_page';
 import 'package:flutter/material.dart';
 import '../services/search_service.dart';
 
@@ -192,12 +193,13 @@ class _SearchUsersModalState extends State<SearchUsersModal> {
                                   color: Colors.grey,
                                 ),
                                 onTap: () {
-                                  print('🔗 Opening user: $userName ($userId)');
-                                  // TODO: Navigate to user profile
-                                  // Navigator.push(context, MaterialPageRoute(
-                                  //   builder: (_) => UserProfilePage(userId: userId),
-                                  // ));
-                                },
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => UserProfilePage(userId: userId),
+                                      ),
+                                     );
+                                  },
                               ),
                             );
                           },

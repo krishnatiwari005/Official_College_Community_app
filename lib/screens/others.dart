@@ -1,18 +1,49 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'othersdetail/academic_feature.dart';
 import 'othersdetail/mental_health_page.dart';
 import 'othersdetail/leaderboard_page.dart';
 import 'othersdetail/cultural_tech_page.dart';
 
-class OthersScreen extends StatefulWidget {
+// Provider for menu items
+final menuItemsProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  return [
+    {
+      'title': 'Study & Academic',
+      'icon': Icons.school_rounded,
+      'color': const Color(0xff4A90E2),
+      'page': const AcademicFeature(),
+    },
+    {
+      'title': 'Mental Health & Wellness',
+      'icon': Icons.spa_rounded,
+      'color': const Color(0xff2ECC71),
+      'page': const MentalHealthPage(),
+    },
+    {
+      'title': 'Leaderboard',
+      'icon': Icons.emoji_events_rounded,
+      'color': const Color(0xffF39C12),
+      'page': const LeaderboardPage(),
+    },
+    {
+      'title': 'Cultural + Tech Society',
+      'icon': Icons.groups_rounded,
+      'color': const Color(0xff9B59B6),
+      'page': const SocietiesPage(),
+    },
+  ];
+});
+
+class OthersScreen extends ConsumerStatefulWidget {
   const OthersScreen({Key? key}) : super(key: key);
 
   @override
-  State<OthersScreen> createState() => _OthersScreenState();
+  ConsumerState<OthersScreen> createState() => _OthersScreenState();
 }
 
-class _OthersScreenState extends State<OthersScreen>
+class _OthersScreenState extends ConsumerState<OthersScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -64,32 +95,7 @@ class _OthersScreenState extends State<OthersScreen>
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> menuItems = [
-      {
-        'title': 'Study & Academic',
-        'icon': Icons.school_rounded,
-        'color': const Color(0xff4A90E2),
-        'page': const AcademicFeature(),
-      },
-      {
-        'title': 'Mental Health & Wellness',
-        'icon': Icons.spa_rounded,
-        'color': const Color(0xff2ECC71),
-        'page': MentalHealthPage(),
-      },
-      {
-        'title': 'Leaderboard',
-        'icon': Icons.emoji_events_rounded,
-        'color': const Color(0xffF39C12),
-        'page': const LeaderboardPage(),
-      },
-      {
-        'title': 'Cultural + Tech Society',
-        'icon': Icons.groups_rounded,
-        'color': const Color(0xff9B59B6),
-        'page': const SocietiesPage(),
-      },
-    ];
+    final menuItems = ref.watch(menuItemsProvider);
 
     return Scaffold(
       appBar: AppBar(

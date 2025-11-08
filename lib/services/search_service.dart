@@ -21,9 +21,9 @@ class SearchService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         print('✅ Users found: ${data.length ?? 0}');
-        
+
         if (data is List) {
           return {
             'success': true,
@@ -41,11 +41,11 @@ class SearchService {
           }
           return {
             'success': true,
-            'users': data,
+            'users': [data],
             'count': 1,
           };
         }
-        
+
         return {
           'success': true,
           'users': [],
@@ -84,9 +84,9 @@ class SearchService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         print('✅ Posts found: ${data.length ?? 0}');
-        
+
         if (data is List) {
           return {
             'success': true,
@@ -104,11 +104,11 @@ class SearchService {
           }
           return {
             'success': true,
-            'posts': data,
+            'posts': [data],
             'count': 1,
           };
         }
-        
+
         return {
           'success': true,
           'posts': [],

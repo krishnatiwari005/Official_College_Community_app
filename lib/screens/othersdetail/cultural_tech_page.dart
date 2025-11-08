@@ -1,112 +1,117 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SocietiesPage extends StatelessWidget {
+// Provider for societies data
+final societiesProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  return [
+    {
+      'name': 'Euphony',
+      'description': 'Innovation and Technology',
+      'color': Colors.blue,
+      'photos': [
+        'assets/e1.png',
+        'assets/e2.png',
+        'assets/e3.png',
+        'assets/e4.png',
+      ],
+    },
+    {
+      'name': 'Taal',
+      'description': 'Art, Music and Dance',
+      'color': Colors.purple,
+      'photos': [
+        'assets/t1.jpg',
+        'assets/t2.jpg',
+        'assets/t3.jpg',
+        'assets/t4.jpeg',
+      ],
+    },
+    {
+      'name': 'Verv',
+      'description': 'Athletics and Fitness',
+      'color': Colors.orange,
+      'photos': [
+        'assets/v1.jpg',
+        'assets/v2.jpg',
+        'assets/v3.jpg',
+        'assets/v4.jpeg',
+      ],
+    },
+    {
+      'name': 'Goonj',
+      'description': 'Reading and Writing',
+      'color': Colors.teal,
+      'photos': [
+        'assets/g1.jpg',
+        'assets/g2.jpg',
+        'assets/g3.jpg',
+        'assets/g4.jpg',
+      ],
+    },
+    {
+      'name': 'Footprint',
+      'description': 'Business and Startups',
+      'color': Colors.green,
+      'photos': [
+        'assets/f1.png',
+        'assets/f2.png',
+        'assets/f3.png',
+        'assets/f4.png',
+      ],
+    },
+    {
+      'name': 'Photography Society',
+      'description': 'Visual Arts and Media',
+      'color': Colors.red,
+      'photos': [
+        'assets/p1.jpg',
+        'assets/p2.jpg',
+        'assets/p3.jpg',
+        'assets/p4.jpg',
+      ],
+    },
+    {
+      'name': 'Sports Club',
+      'description': 'Automation and AI',
+      'color': Colors.indigo,
+      'photos': [
+        'assets/s1.jpg',
+        'assets/s2.jpg',
+        'assets/s3.jpg',
+        'assets/s4.jpg',
+      ],
+    },
+    {
+      'name': 'Horizon',
+      'description': 'Theatre and Performance',
+      'color': Colors.pink,
+      'photos': [
+        'assets/h1.jpg',
+        'assets/h2.jpg',
+        'assets/h3.jpg',
+        'assets/h4.jpg',
+      ],
+    },
+    {
+      'name': 'Renaissance',
+      'description': 'Community Welfare',
+      'color': Colors.amber,
+      'photos': [
+        'assets/r1.jpg',
+        'assets/r2.jpg',
+        'assets/r3.jpg',
+        'assets/r4.jpg',
+      ],
+    },
+  ];
+});
+
+class SocietiesPage extends ConsumerWidget {
   const SocietiesPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Data for 9 societies with their event photos
-    final societies = [
-      {
-        'name': 'Euphony',
-        'description': 'Innovation and Technology',
-        'color': Colors.blue,
-        'photos': [
-          'assets/e1.png',
-          'assets/e2.png',
-          'assets/e3.png',
-          'assets/e4.png',
-        ],
-      },
-      {
-        'name': 'Taal',
-        'description': 'Art, Music and Dance',
-        'color': Colors.purple,
-        'photos': [
-          'assets/t1.jpg',
-          'assets/t2.jpg',
-          'assets/t3.jpg',
-          'assets/t4.jpeg',
-        ],
-      },
-      {
-        'name': 'Verv',
-        'description': 'Athletics and Fitness',
-        'color': Colors.orange,
-        'photos': [
-          'assets/v1.jpg',
-          'assets/v2.jpg',
-          'assets/v3.jpg',
-          'assets/v4.jpeg',
-        ],
-      },
-      {
-        'name': 'Goonj',
-        'description': 'Reading and Writing',
-        'color': Colors.teal,
-        'photos': [
-          'assets/g1.jpg',
-          'assets/g2.jpg',
-          'assets/g3.jpg',
-          'assets/g4.jpg',
-        ],
-      },
-      {
-        'name': 'Footprint',
-        'description': 'Business and Startups',
-        'color': Colors.green,
-        'photos': [
-          'assets/f1.png',
-          'assets/f2.png',
-          'assets/f3.png',
-          'assets/f4.png',
-        ],
-      },
-      {
-        'name': 'Photography Society',
-        'description': 'Visual Arts and Media',
-        'color': Colors.red,
-        'photos': [
-          'assets/p1.jpg',
-          'assets/p2.jpg',
-          'assets/p3.jpg',
-          'assets/p4.jpg',
-        ],
-      },
-      {
-        'name': 'Sports Club',
-        'description': 'Automation and AI',
-        'color': Colors.indigo,
-        'photos': [
-          'assets/s1.jpg',
-          'assets/s2.jpg',
-          'assets/s3.jpg',
-          'assets/s4.jpg',
-        ],
-      },
-      {
-        'name': 'Horizon',
-        'description': 'Theatre and Performance',
-        'color': Colors.pink,
-        'photos': [
-          'assets/h1.jpg',
-          'assets/h2.jpg',
-          'assets/h3.jpg',
-          'assets/h4.jpg',
-        ],
-      },
-      {
-        'name': 'Renaissance',
-        'description': 'Community Welfare',
-        'color': Colors.amber,
-        'photos': [
-          'assets/r1.jpg',
-          'assets/r2.jpg',
-          'assets/r3.jpg',
-          'assets/r4.jpg',
-        ],
-      },
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final societies = ref.watch(societiesProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,

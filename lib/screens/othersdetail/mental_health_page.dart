@@ -1,5 +1,5 @@
-// mental_health_page.dart (Final Fixed & Polished Version)
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Professional {
@@ -30,8 +30,9 @@ class Program {
   });
 }
 
-class MentalHealthPage extends StatelessWidget {
-  final List<Professional> professionals = [
+// Provider for mental health professionals
+final professionalsProvider = Provider<List<Professional>>((ref) {
+  return [
     Professional(
       name: 'Max Super Speciality Hospital - Psychiatry (Vaishali)',
       role: 'Hospital Psychiatry Department',
@@ -61,8 +62,11 @@ class MentalHealthPage extends StatelessWidget {
       imageAsset: 'assets/images/n4.jpeg',
     ),
   ];
+});
 
-  final List<Program> programs = [
+// Provider for programs
+final programsProvider = Provider<List<Program>>((ref) {
+  return [
     Program(
       title: 'College Career Guidance Cell (MMH College)',
       details:
@@ -76,9 +80,16 @@ class MentalHealthPage extends StatelessWidget {
       imageAsset: 'assets/images/n6.jpeg',
     ),
   ];
+});
+
+class MentalHealthPage extends ConsumerWidget {
+  const MentalHealthPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final professionals = ref.watch(professionalsProvider);
+    final programs = ref.watch(programsProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(

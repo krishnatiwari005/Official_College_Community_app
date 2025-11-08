@@ -1,55 +1,73 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:lottie/lottie.dart';
 import '../auth/login_page.dart';
 
-class SplashScreen extends StatefulWidget {
+final typewriterTextProvider = StateNotifierProvider<TypewriterTextNotifier, String>(
+  (ref) => TypewriterTextNotifier(),
+);
+
+class TypewriterTextNotifier extends StateNotifier<String> {
+  TypewriterTextNotifier() : super('');
+
+  Timer? _timer;
+  final String fullText = 'Connecting Students & Faculty';
+  int textIndex = 0;
+
+  void startTyping() {
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (textIndex < fullText.length) {
+        state = state + fullText[textIndex];
+        textIndex++;
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _fadeController;
-  String displayedText = '';
-  final String fullText = 'Connecting Students & Faculty';
-  int textIndex = 0;
 
   @override
   void initState() {
     super.initState();
 
-    
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..forward();
 
-  
-    Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (textIndex < fullText.length) {
-        setState(() {
-          displayedText += fullText[textIndex];
-          textIndex++;
-        });
-      } else {
-        timer.cancel();
-      }
-    });
+    ref.read(typewriterTextProvider.notifier).startTyping();
 
-   
     Timer(const Duration(seconds: 5), () {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 800),
-          pageBuilder: (_, __, ___) => const LoginPage(),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 800),
+            pageBuilder: (_, __, ___) => const LoginPage(),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      }
     });
   }
 
@@ -61,6 +79,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final displayedText = ref.watch(typewriterTextProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -76,7 +96,6 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-               
                 Lottie.asset(
                   'assets/animations/college_loader.json',
                   width: 220,

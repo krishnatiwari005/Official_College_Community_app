@@ -1,3 +1,4 @@
+import 'package:community_app/screens/post_detail_screen.dart';
 import 'package:flutter/material.dart';
 import '../services/search_service.dart';
 
@@ -206,11 +207,12 @@ class _SearchPostsModalState extends State<SearchPostsModal> {
                                 ),
                                 isThreeLine: true,
                                 onTap: () {
-                                  print('🔗 Opening post: $postTitle ($postId)');
-                                  // TODO: Navigate to post detail
-                                  // Navigator.push(context, MaterialPageRoute(
-                                  //   builder: (_) => PostDetailPage(postId: postId),
-                                  // ));
+                                  Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                        builder: (context) => PostDetailScreen(postId: postId),
+                                    ),
+                                  );
                                 },
                               ),
                             );

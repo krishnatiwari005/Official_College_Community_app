@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CsitBlock extends StatelessWidget {
-  const CsitBlock({super.key});
-
-  // Faculty data list
-  final List<Map<String, String>> facultyList = const [
+// Provider for CS/IT faculty list
+final csitFacultyListProvider = Provider<List<Map<String, String>>>((ref) {
+  return const [
     {
       'name': 'Dr. Anu chaudhary',
       'image': 'assets/images/Anu.jpg',
@@ -41,17 +40,22 @@ class CsitBlock extends StatelessWidget {
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
-    
-     {
+    {
       'name': 'Dr. Jaishree Jain',
       'image': 'assets/images/Jaishree.jpg',
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
   ];
+});
+
+class CsitBlock extends ConsumerWidget {
+  const CsitBlock({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final facultyList = ref.watch(csitFacultyListProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(

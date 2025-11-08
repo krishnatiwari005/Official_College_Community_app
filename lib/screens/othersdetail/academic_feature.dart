@@ -3,56 +3,83 @@ import 'package:community_app/screens/othersdetail/academics_screens/csit_block.
 import 'package:community_app/screens/othersdetail/academics_screens/ece_block.dart';
 import 'package:community_app/screens/othersdetail/academics_screens/mechanical_block.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Provider for academic blocks data
+final academicBlocksProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  return [
+    {
+      'title': 'CS/IT-Block',
+      'color': Colors.orange.withOpacity(0.85),
+      'page': const CsitBlock(),
+    },
+    {
+      'title': 'ME-Block',
+      'color': Colors.teal.withOpacity(0.85),
+      'page': const MechanicalBlock(),
+    },
+    {
+      'title': 'Civil-Block',
+      'color': Colors.blue.withOpacity(0.85),
+      'page': const CivilBlock(),
+    },
+    {
+      'title': 'ECE-Block',
+      'color': Colors.purple.withOpacity(0.85),
+      'page': const EceBlock(),
+    },
+  ];
+});
 
-class AcademicFeature extends StatelessWidget {
+class AcademicFeature extends ConsumerWidget {
   const AcademicFeature({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final academicBlocks = ref.watch(academicBlocksProvider);
+    
     return Scaffold(
       appBar: AppBar(
-  title: const Text(
-    'AKGEC Academics',
-    style: TextStyle(
-      color: Colors.white,
-      fontSize: 24,
-      fontWeight: FontWeight.w900, // visibly bold
-      letterSpacing: 1.3,
-      shadows: [
-        Shadow(
-          color: Colors.black45,
-          offset: Offset(1, 2),
-          blurRadius: 4,
+        title: const Text(
+          'AKGEC Academics',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900, // visibly bold
+            letterSpacing: 1.3,
+            shadows: [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(1, 2),
+                blurRadius: 4,
+              ),
+            ],
+          ),
         ),
-      ],
-    ),
-  ),
-  centerTitle: true,
-  elevation: 6,
-  shadowColor: Colors.black45,
-  flexibleSpace: Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Color(0xFF09276D), // deep AKGEC blue
-          Color(0xFF1661B2),
-          Color(0xFF09276D),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        centerTitle: true,
+        elevation: 6,
+        shadowColor: Colors.black45,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF09276D), // deep AKGEC blue
+                Color(0xFF1661B2),
+                Color(0xFF09276D),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(18),
+          ),
+        ),
+        toolbarHeight: 72,
+        backgroundColor: Colors.transparent,
       ),
-    ),
-  ),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(
-      bottom: Radius.circular(18),
-    ),
-  ),
-  toolbarHeight: 72,
-  backgroundColor: Colors.transparent,
-),
-
 
       body: Stack(
         children: [
@@ -70,37 +97,23 @@ class AcademicFeature extends StatelessWidget {
           Center(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                ),
                 shrinkWrap: true,
-                children: [
-                  _buildFeatureBlock(
+                itemCount: academicBlocks.length,
+                itemBuilder: (context, index) {
+                  final block = academicBlocks[index];
+                  return _buildFeatureBlock(
                     context,
-                    title: 'CS/IT-Block',
-                    color: Colors.orange.withOpacity(0.85),
-                    page: const CsitBlock(),
-                  ),
-                  _buildFeatureBlock(
-                    context,
-                    title: 'ME-Block',
-                    color: Colors.teal.withOpacity(0.85),
-                    page: const MechanicalBlock(),
-                  ),
-                  _buildFeatureBlock(
-                    context,
-                    title: 'Civil-Block',
-                    color: Colors.blue.withOpacity(0.85),
-                    page: const CivilBlock(),
-                  ),
-                  _buildFeatureBlock(
-                    context,
-                    title: 'ECE-Block',
-                    color: Colors.purple.withOpacity(0.85),
-                    page: const EceBlock(),
-                  ),
-                ],
+                    title: block['title'] as String,
+                    color: block['color'] as Color,
+                    page: block['page'] as Widget,
+                  );
+                },
               ),
             ),
           ),
@@ -128,25 +141,24 @@ class AcademicFeature extends StatelessWidget {
           ],
         ),
         child: Center(
-  child: Text(
-    title,
-    textAlign: TextAlign.center,
-    style: const TextStyle(
-      color: Colors.white,
-      fontSize: 22, // slightly larger for visibility
-      fontWeight: FontWeight.w900, // extra bold
-      letterSpacing: 1.3, // adds a clean modern feel
-      shadows: [
-        Shadow(
-          color: Colors.black54, // subtle text glow
-          offset: Offset(2, 2),
-          blurRadius: 4,
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22, // slightly larger for visibility
+              fontWeight: FontWeight.w900, // extra bold
+              letterSpacing: 1.3, // adds a clean modern feel
+              shadows: [
+                Shadow(
+                  color: Colors.black54, // subtle text glow
+                  offset: Offset(2, 2),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
         ),
-      ],
-    ),
-  ),
-),
-
       ),
     );
   }

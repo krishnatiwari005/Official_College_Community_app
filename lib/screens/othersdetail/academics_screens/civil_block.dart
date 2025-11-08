@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CivilBlock extends StatelessWidget {
-  const CivilBlock({super.key});
-
-  // Faculty data list
-  final List<Map<String, String>> facultyList = const [
+// Provider for faculty list
+final facultyListProvider = Provider<List<Map<String, String>>>((ref) {
+  return const [
     {
       'name': 'Dr.Rakesh Srivastava',
       'image': 'assets/images/rakesh.jpg',
@@ -41,17 +40,22 @@ class CivilBlock extends StatelessWidget {
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
-    
-     {
+    {
       'name': 'Ms. Kshama Shukla',
       'image': 'assets/images/kshma.jpg',
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
   ];
+});
+
+class CivilBlock extends ConsumerWidget {
+  const CivilBlock({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final facultyList = ref.watch(facultyListProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(

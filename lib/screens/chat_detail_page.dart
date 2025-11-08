@@ -1,56 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../services/chat_service.dart';
 
-class ChatDetailPage extends StatefulWidget {
-  final String chatId;
-  final String chatName;
+// Provider for messages state
+final messagesProvider = StateNotifierProvider.family<MessagesNotifier, MessagesState, String>(
+  (ref, chatId) => MessagesNotifier(chatId),
+);
 
-  const ChatDetailPage({
-    Key? key,
-    required this.chatId,
-    required this.chatName, required String groupId,
-  }) : super(key: key);
+// Messages state class
+class MessagesState {
+  final List<dynamic> messages;
+  final bool isLoading;
+  final bool isSending;
+  final String? errorMessage;
 
-  @override
-  State<ChatDetailPage> createState() => _ChatDetailPageState();
+  MessagesState({
+    this.messages = const [],
+    this.isLoading = true,
+    this.isSending = false,
+    this.errorMessage,
+  });
+
+  MessagesState copyWith({
+    List<dynamic>? messages,
+    bool? isLoading,
+    bool? isSending,
+    String? errorMessage,
+  }) {
+    return MessagesState(
+      messages: messages ?? this.messages,
+      isLoading: isLoading ?? this.isLoading,
+      isSending: isSending ?? this.isSending,
+      errorMessage: errorMessage,
+    );
+  }
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage> {
-  final _messageController = TextEditingController();
-  final _scrollController = ScrollController();
-  bool _isSending = false;
-  bool _isLoadingMessages = true;
-  List<dynamic> _messages = [];
-  String? _errorMessage;
+// Messages notifier
+class MessagesNotifier extends StateNotifier<MessagesState> {
+  final String chatId;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadMessages();
+  MessagesNotifier(this.chatId) : super(MessagesState()) {
+    loadMessages();
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  // ✅ LOAD MESSAGES FROM API
-  Future<void> _loadMessages() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoadingMessages = true;
-      _errorMessage = null;
-    });
+  Future<void> loadMessages() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      print('💬 Fetching messages for chat: ${widget.chatId}');
+      print('💬 Fetching messages for chat: $chatId');
 
-      final result = await ChatService.getChatMessages(widget.chatId);
-
-      if (!mounted) return;
+      final result = await ChatService.getChatMessages(chatId);
 
       print('📊 Result:');
       print('   Success: ${result['success']}');
@@ -60,34 +61,93 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       if (result['success']) {
         final messages = result['messages'] ?? [];
 
-        setState(() {
-          _messages = messages;
-          _isLoadingMessages = false;
-          _errorMessage = null;
-        });
+        state = state.copyWith(
+          messages: messages,
+          isLoading: false,
+          errorMessage: null,
+        );
 
-        print('✅ Loaded ${_messages.length} messages');
-        _scrollToBottom();
+        print('✅ Loaded ${state.messages.length} messages');
       } else {
-        setState(() {
-          _isLoadingMessages = false;
-          _errorMessage = result['message'] ?? 'Failed to load messages';
-          _messages = [];
-        });
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: result['message'] ?? 'Failed to load messages',
+          messages: [],
+        );
 
         print('❌ Error: ${result['message']}');
       }
     } catch (e) {
       print('❌ Exception: $e');
 
-      if (!mounted) return;
-
-      setState(() {
-        _isLoadingMessages = false;
-        _errorMessage = 'Error: $e';
-        _messages = [];
-      });
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Error: $e',
+        messages: [],
+      );
     }
+  }
+
+  Future<Map<String, dynamic>> sendMessage(String content) async {
+    if (content.isEmpty) {
+      return {'success': false, 'message': 'Message cannot be empty'};
+    }
+
+    state = state.copyWith(isSending: true);
+
+    try {
+      print('📤 Sending message...');
+
+      final result = await ChatService.sendMessage(
+        chatId: chatId,
+        content: content,
+        messageId: '',
+      );
+
+      if (result['success']) {
+        print('✅ Message sent successfully');
+        print('   Message ID: ${result['messageId']}');
+
+        // Reload messages
+        await loadMessages();
+      } else {
+        print('❌ Error: ${result['message']}');
+      }
+
+      state = state.copyWith(isSending: false);
+      return result;
+    } catch (e) {
+      print('❌ Exception: $e');
+      state = state.copyWith(isSending: false);
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+}
+
+class ChatDetailPage extends ConsumerStatefulWidget {
+  final String chatId;
+  final String chatName;
+
+  const ChatDetailPage({
+    Key? key,
+    required this.chatId,
+    required this.chatName,
+    required String groupId,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<ChatDetailPage> createState() => _ChatDetailPageState();
+}
+
+class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
+  final _messageController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   // ✅ SEND MESSAGE METHOD
@@ -105,58 +165,33 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       return;
     }
 
-    setState(() => _isSending = true);
+    final result = await ref
+        .read(messagesProvider(widget.chatId).notifier)
+        .sendMessage(content);
 
-    try {
-      print('📤 Sending message...');
+    if (!mounted) return;
 
-      final result = await ChatService.sendMessage(
-        chatId: widget.chatId,
-        content: content, messageId: '',
-      );
-
-      if (!mounted) return;
-
-      if (result['success']) {
-        print('✅ Message sent successfully');
-        print('   Message ID: ${result['messageId']}');
-
-        _messageController.clear();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Message sent'),
-            backgroundColor: Colors.green,
-            duration: Duration(milliseconds: 500),
-          ),
-        );
-
-        // ✅ RELOAD MESSAGES
-        await _loadMessages();
-      } else {
-        print('❌ Error: ${result['message']}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ ${result['message']}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Exception: $e');
-      if (!mounted) return;
+    if (result['success']) {
+      _messageController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Message sent'),
+          backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 500),
+        ),
+      );
+
+      _scrollToBottom();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Error: $e'),
+          content: Text('❌ ${result['message']}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
-
-    if (!mounted) return;
-    setState(() => _isSending = false);
   }
 
   // ✅ SCROLL TO BOTTOM
@@ -192,6 +227,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final messagesState = ref.watch(messagesProvider(widget.chatId));
+
     return Scaffold(
       // ✅ APP BAR
       appBar: AppBar(
@@ -226,16 +263,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadMessages,
+            onPressed: () => ref
+                .read(messagesProvider(widget.chatId).notifier)
+                .loadMessages(),
             tooltip: 'Refresh messages',
           ),
         ],
       ),
-      body: _isLoadingMessages
+      body: messagesState.isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Colors.blue),
             )
-          : _errorMessage != null
+          : messagesState.errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -258,7 +297,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          _errorMessage ?? 'Unknown error',
+                          messagesState.errorMessage ?? 'Unknown error',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.red[500],
@@ -268,7 +307,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        onPressed: _loadMessages,
+                        onPressed: () => ref
+                            .read(messagesProvider(widget.chatId).notifier)
+                            .loadMessages(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Retry'),
                         style: ElevatedButton.styleFrom(
@@ -282,7 +323,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   children: [
                     // ✅ MESSAGES LIST
                     Expanded(
-                      child: _messages.isEmpty
+                      child: messagesState.messages.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -319,10 +360,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 vertical: 12,
                                 horizontal: 8,
                               ),
-                              itemCount: _messages.length,
+                              itemCount: messagesState.messages.length,
                               itemBuilder: (context, index) {
-                                final message =
-                                    _messages[_messages.length - 1 - index];
+                                final message = messagesState
+                                    .messages[messagesState.messages.length - 1 - index];
 
                                 if (message is! Map) {
                                   return const SizedBox.shrink();
@@ -426,7 +467,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 child: TextField(
                                   controller: _messageController,
                                   maxLines: null,
-                                  enabled: !_isSending,
+                                  enabled: !messagesState.isSending,
                                   decoration: InputDecoration(
                                     hintText: 'Type a message...',
                                     hintStyle: TextStyle(
@@ -452,7 +493,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                               radius: 24,
                               backgroundColor: Colors.blue.shade600,
                               child: IconButton(
-                                icon: _isSending
+                                icon: messagesState.isSending
                                     ? const SizedBox(
                                         width: 20,
                                         height: 20,
@@ -469,8 +510,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                         color: Colors.white,
                                         size: 20,
                                       ),
-                                onPressed:
-                                    _isSending ? null : _sendMessage,
+                                onPressed: messagesState.isSending
+                                    ? null
+                                    : _sendMessage,
                               ),
                             ),
                           ],
