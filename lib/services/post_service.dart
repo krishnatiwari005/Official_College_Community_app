@@ -666,6 +666,47 @@ class PostService {
       return {'success': false, 'message': 'Error: $e'};
     }
   }
+  // In PostService class
+static Future<Map<String, dynamic>> getPostById(String postId) async {
+  try {
+    final token = authToken;
+    
+    print('🔍 Fetching post with ID: $postId');
+    print('🔍 URL: $apiUrl/api/posts/$postId');
+    
+    final response = await http.get(
+      Uri.parse('$apiUrl/api/posts/$postId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('📊 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return {
+        'success': true,
+        'post': data,
+      };
+    } else {
+      return {
+        'success': false,
+        'message': 'Error: ${response.statusCode}',
+      };
+    }
+  } catch (e) {
+    print('❌ Error fetching post: $e');
+    return {
+      'success': false,
+      'message': 'Error: $e',
+    };
+  }
+}
+
+
 
   static Future<Map<String, dynamic>> addComment({
     required String postId,

@@ -1,11 +1,11 @@
 import 'package:community_app/models/search_posts_modal.dart';
-import 'package:community_app/models/search_users_modal.dart';
 import 'package:community_app/providers/posts_provider.dart';
 import 'package:community_app/screens/chatbot.dart';
 import 'package:community_app/services/comment_service.dart';
 import 'package:community_app/services/like_service.dart';
 import 'package:community_app/services/dislike_service.dart';
 import 'package:community_app/services/post_service.dart';
+import 'package:community_app/widgets/search_users_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -69,39 +69,47 @@ class HomeScreen extends ConsumerWidget {
     ),
   ),
   actions: [
-    PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
-      onSelected: (value) {
-        if (value == 'search_users') {
-          _showSearchUsersModal(context);
-        } else if (value == 'search_posts') {
-          _showSearchPostsModal(context);
-        }
-      },
-      itemBuilder: (BuildContext context) => [
-        PopupMenuItem<String>(
-          value: 'search_users',
-          child: Row(
-            children: [
-              Icon(Icons.person_search, color: Colors.grey[700]),
-              const SizedBox(width: 12),
-              const Text('Search Users'),
-            ],
-          ),
+  PopupMenuButton<String>(
+    icon: const Icon(Icons.more_vert),
+    onSelected: (value) async {
+      if (value == 'search_users') {
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => const SearchUsersModal(),
+        );
+      } else if (value == 'search_posts') {
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (context) => const SearchPostsModal(),
+        );
+      }
+    },
+    itemBuilder: (context) => [
+      const PopupMenuItem(
+        value: 'search_users',
+        child: Row(
+          children: [
+            Icon(Icons.person_search),
+            SizedBox(width: 8),
+            Text('Search Users'),
+          ],
         ),
-        PopupMenuItem<String>(
-          value: 'search_posts',
-          child: Row(
-            children: [
-              Icon(Icons.search, color: Colors.grey[700]),
-              const SizedBox(width: 12),
-              const Text('Search Posts'),
-            ],
-          ),
+      ),
+      const PopupMenuItem(
+        value: 'search_posts',
+        child: Row(
+          children: [
+            Icon(Icons.article_outlined),
+            SizedBox(width: 8),
+            Text('Search Posts'),
+          ],
         ),
-      ],
-    ),
-  ],
+      ),
+    ],
+  ),
+],
 ),
 
 
@@ -189,7 +197,7 @@ class HomeScreen extends ConsumerWidget {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    builder: (context) => SearchUsersModal(searchController: searchController),
+    builder: (context) => SearchUsersModal(),
   );
 }
 
@@ -198,7 +206,7 @@ void _showSearchPostsModal(BuildContext context) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    builder: (context) => SearchPostsModal(searchController: searchController),
+    builder: (context) => SearchPostsModal(),
   );
 }
 }

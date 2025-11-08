@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:community_app/widgets/multi_select_categories_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,18 +19,16 @@ class PostScreen extends ConsumerStatefulWidget {
 class _PostScreenState extends ConsumerState<PostScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _categoryController = TextEditingController();
   File? _mediaFile;
   bool _isLoading = false;
   String? _error;
-
+  List<String> _selectedCategories = [];
   final _picker = ImagePicker();
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _categoryController.dispose();
     super.dispose();
   }
 
@@ -63,8 +62,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       return;
     }
 
-    if (_categoryController.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter a category');
+    if (_selectedCategories.isEmpty) {
+      setState(() => _error = 'Please select at least one category');
       return;
     }
 
@@ -74,17 +73,20 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     });
 
     try {
+      // Convert array to comma-separated string
+      final categoryString = _selectedCategories.join(', ');
+      
       print('📝 Creating post...');
       print('   Title: ${_titleController.text}');
       print('   Description: ${_descriptionController.text}');
-      print('   Category: ${_categoryController.text}');
+      print('   Category: $categoryString');
       print('   Has media: ${_mediaFile != null}');
 
       final postFormNotifier = ref.read(postFormProvider.notifier);
 
       postFormNotifier.setTitle(_titleController.text.trim());
       postFormNotifier.setDescription(_descriptionController.text.trim());
-      postFormNotifier.setCategory(_categoryController.text.trim());
+      postFormNotifier.setCategory(categoryString); // Send as comma-separated string
 
       if (_mediaFile != null) {
         postFormNotifier.setMediaFile(_mediaFile);
@@ -101,12 +103,13 @@ class _PostScreenState extends ConsumerState<PostScreen> {
 
         _titleController.clear();
         _descriptionController.clear();
-        _categoryController.clear();
 
         setState(() {
           _mediaFile = null;
+          _selectedCategories = [];
           _error = null;
         });
+        
         ref.refresh(postsProvider);
         print('🔄 All posts refreshed');
 
@@ -159,8 +162,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   Widget build(BuildContext context) {
     final token = ref.watch(authTokenProvider);
 
-    print(
-        '🔍 PostScreen build - Token: ${token?.substring(0, 20) ?? "null"}...');
+    print('🔍 PostScreen build - Token: ${token?.substring(0, 20) ?? "null"}...');
 
     if (token == null || token.isEmpty) {
       print('❌ Not logged in - showing login prompt');
@@ -259,8 +261,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         Expanded(
                           child: Text(
                             _error!,
-                            style: TextStyle(
-                                color: Colors.red.shade700, fontSize: 14),
+                            style: TextStyle(color: Colors.red.shade700, fontSize: 14),
                           ),
                         ),
                       ],
@@ -279,8 +280,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   decoration: InputDecoration(
                     hintText: 'What\'s on your mind?',
                     prefixIcon: const Icon(Icons.title, color: Colors.blue),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Colors.grey[50],
                     counterText: '${_titleController.text.length}/100',
@@ -300,10 +300,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                   controller: _descriptionController,
                   decoration: InputDecoration(
                     hintText: 'Tell us more...',
-                    prefixIcon:
-                        const Icon(Icons.description, color: Colors.blue),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.description, color: Colors.blue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Colors.grey[50],
                     alignLabelWithHint: true,
@@ -317,21 +315,17 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 const SizedBox(height: 16),
 
                 const Text(
-                  'Category',
+                  'Categories *',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _categoryController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g., Academic, Events, General...',
-                    prefixIcon: const Icon(Icons.category, color: Colors.blue),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                  ),
-                  enabled: !_isLoading,
+                MultiSelectCategoriesDropdown(
+                  selectedCategories: _selectedCategories,
+                  onChanged: (selected) {
+                    setState(() {
+                      _selectedCategories = selected;
+                    });
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -356,9 +350,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                         top: 8,
                         right: 8,
                         child: GestureDetector(
-                          onTap: _isLoading
-                              ? null
-                              : () => setState(() => _mediaFile = null),
+                          onTap: _isLoading ? null : () => setState(() => _mediaFile = null),
                           child: Container(
                             decoration: const BoxDecoration(
                               color: Colors.red,
@@ -381,8 +373,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                 GestureDetector(
                   onTap: _isLoading ? null : _pickImage,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: Colors.blue.shade300,
@@ -411,9 +402,7 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _mediaFile == null
-                                    ? 'Add Photo'
-                                    : 'Change Photo',
+                                _mediaFile == null ? 'Add Photo' : 'Change Photo',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -487,12 +476,10 @@ class AnimatedGradientBackground extends StatefulWidget {
   const AnimatedGradientBackground({Key? key}) : super(key: key);
 
   @override
-  State<AnimatedGradientBackground> createState() =>
-      _AnimatedGradientBackgroundState();
+  State<AnimatedGradientBackground> createState() => _AnimatedGradientBackgroundState();
 }
 
-class _AnimatedGradientBackgroundState
-    extends State<AnimatedGradientBackground>
+class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Alignment> _alignmentAnimation;
