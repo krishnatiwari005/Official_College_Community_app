@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MechanicalBlock extends StatelessWidget {
-  const MechanicalBlock({super.key});
-
-  // Faculty data list
-  final List<Map<String, String>> facultyList = const [
+// Provider for Mechanical faculty list
+final mechanicalFacultyListProvider = Provider<List<Map<String, String>>>((ref) {
+  return const [
     {
       'name': 'Dr. Pallab Biswas',
       'image': 'assets/images/pallab.jpg',
@@ -41,17 +40,22 @@ class MechanicalBlock extends StatelessWidget {
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
-    
-     {
+    {
       'name': 'Dr. Manoj Yadav',
       'image': 'assets/images/manoj.jpg',
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
   ];
+});
+
+class MechanicalBlock extends ConsumerWidget {
+  const MechanicalBlock({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final facultyList = ref.watch(mechanicalFacultyListProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(

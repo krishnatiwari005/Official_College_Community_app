@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class EceBlock extends StatelessWidget {
-  const EceBlock({super.key});
-
-  // Faculty data list
-  final List<Map<String, String>> facultyList = const [
+// Provider for ECE faculty list
+final eceFacultyListProvider = Provider<List<Map<String, String>>>((ref) {
+  return const [
     {
       'name': 'Dr. Neelesh Gupta',
       'image': 'assets/images/neelesh.jpg',
@@ -41,17 +40,22 @@ class EceBlock extends StatelessWidget {
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
-    
-     {
+    {
       'name': 'Dr. Gaurav Saxena',
       'image': 'assets/images/gaurav.jpg',
       'experience': '6 Years',
       'subject': 'Assistant Professor'
     },
   ];
+});
+
+class EceBlock extends ConsumerWidget {
+  const EceBlock({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final facultyList = ref.watch(eceFacultyListProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(

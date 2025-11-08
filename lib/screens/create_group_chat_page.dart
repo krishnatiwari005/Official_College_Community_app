@@ -1,5 +1,5 @@
 import 'package:community_app/providers/chat_provider.dart';
-import 'package:community_app/providers/users_provider.dart'; // ✅ Add this
+import 'package:community_app/providers/users_provider.dart';
 import 'package:community_app/services/chat_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

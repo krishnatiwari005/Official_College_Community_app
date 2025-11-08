@@ -1,3 +1,5 @@
+import 'package:community_app/models/search_posts_modal.dart';
+import 'package:community_app/models/search_users_modal.dart';
 import 'package:community_app/providers/posts_provider.dart';
 import 'package:community_app/screens/chatbot.dart';
 import 'package:community_app/services/comment_service.dart';
@@ -17,44 +19,80 @@ class HomeScreen extends ConsumerWidget {
     final postsAsync = ref.watch(postsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 6,
-        toolbarHeight: 75,
-        centerTitle: true,
-        title: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Colors.white, Color(0xFFE3F2FD)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'CollabSpace',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 26,
-              letterSpacing: 1.5,
-              color: Colors.white,
-              fontFamily: 'Poppins',
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  offset: Offset(1, 2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
+    appBar: AppBar(
+  elevation: 6,
+  toolbarHeight: 75,
+  centerTitle: true,
+  title: ShaderMask(
+    shaderCallback: (bounds) => const LinearGradient(
+      colors: [Colors.white, Color(0xFFE3F2FD)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ).createShader(bounds),
+    child: const Text(
+      'CollabSpace',
+      style: TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: 26,
+        letterSpacing: 1.5,
+        color: Colors.white,
+        fontFamily: 'Poppins',
+        shadows: [
+          Shadow(
+            color: Colors.black26,
+            offset: Offset(1, 2),
+            blurRadius: 4,
           ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        ],
       ),
+    ),
+  ),
+  flexibleSpace: Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+  ),
+  actions: [
+    PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
+      onSelected: (value) {
+        if (value == 'search_users') {
+          _showSearchUsersModal(context);
+        } else if (value == 'search_posts') {
+          _showSearchPostsModal(context);
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        PopupMenuItem<String>(
+          value: 'search_users',
+          child: Row(
+            children: [
+              Icon(Icons.person_search, color: Colors.grey[700]),
+              const SizedBox(width: 12),
+              const Text('Search Users'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'search_posts',
+          child: Row(
+            children: [
+              Icon(Icons.search, color: Colors.grey[700]),
+              const SizedBox(width: 12),
+              const Text('Search Posts'),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ],
+),
+
+
       body: Stack(
         children: [
           RefreshIndicator(
@@ -122,6 +160,24 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+  
+  void _showSearchUsersModal(BuildContext context) {
+  final searchController = TextEditingController();
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SearchUsersModal(searchController: searchController),
+  );
+}
+
+void _showSearchPostsModal(BuildContext context) {
+  final searchController = TextEditingController();
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SearchPostsModal(searchController: searchController),
+  );
+}
 }
 
 class _BoldRefreshIcon extends StatefulWidget {

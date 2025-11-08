@@ -1,11 +1,149 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LeaderboardPage extends StatelessWidget {
+// Provider for placement data
+final placementsDataProvider = Provider<List<Map<String, String>>>((ref) {
+  return [
+    {
+      'name': 'Anshuman Nandan',
+      'branch': 'Computer Science',
+      'company': 'Google',
+      'package': '₹30 LPA',
+      'image': 'assets/1.png',
+    },
+    {
+      'name': 'Archas Srivastava',
+      'branch': 'Information Technology',
+      'company': 'Goldman Sachs',
+      'package': '₹21 LPA',
+      'image': 'assets/2.png',
+    },
+    {
+      'name': 'Soumya Maheshwari',
+      'branch': 'Computer Science',
+      'company': 'Googe',
+      'package': '₹13.2 LPA',
+      'image': 'assets/3.png',
+    },
+    {
+      'name': 'Garima Gautam',
+      'branch': 'Electronics',
+      'company': 'Amazon',
+      'package': '₹13.2 LPA',
+      'image': 'assets/4.png',
+    },
+    {
+      'name': 'SAKSHAM TIWARI',
+      'branch': 'Computer Science',
+      'company': 'Meta',
+      'package': '₹42.75 LPA',
+      'image': 'assets/5.png',
+    },
+    {
+      'name': 'SAUMYA CHAUDHARY',
+      'branch': 'Information Technology',
+      'company': 'Uber',
+      'package': '₹38.44 LPA',
+      'image': 'assets/6.png',
+    },
+    {
+      'name': 'SUYASH SINGH',
+      'branch': 'Computer Science',
+      'company': 'Netflix',
+      'package': '₹34 LPA',
+      'image': 'assets/7.png',
+    },
+    {
+      'name': 'PARAS PANDEY',
+      'branch': 'Electronics',
+      'company': 'Intel',
+      'package': '₹32 LPA',
+      'image': 'assets/8.png',
+    },
+    {
+      'name': 'SHREYANSHI SINGH ',
+      'branch': 'Computer Science',
+      'company': 'PhonePe',
+      'package': '₹30 LPA',
+      'image': 'assets/9.png',
+    },
+    {
+      'name': 'APOORV MAHESHWARI B. ',
+      'branch': 'Information Technology',
+      'company': 'Salesforce',
+      'package': '₹28 LPA',
+      'image': 'assets/10.png',
+    },
+    {
+      'name': 'DEEPAK SHARMA',
+      'branch': 'Computer Science',
+      'company': 'Oracle',
+      'package': '₹26 LPA',
+      'image': 'assets/11.png',
+    },
+    {
+      'name': 'MADHUR VASHISTHA B. ',
+      'branch': 'Electronics',
+      'company': 'Qualcomm',
+      'package': '₹25 LPA',
+      'image': 'assets/12.png',
+    },
+    {
+      'name': 'MUSKAN AGRAWAL ',
+      'branch': 'Computer Science',
+      'company': 'LinkedIn',
+      'package': '₹24 LPA',
+      'image': 'assets/13.png',
+    },
+  ];
+});
+
+// Provider for bar chart data
+final barChartDataProvider = Provider<List<BarChartGroupData>>((ref) {
+  return [
+    BarChartGroupData(
+      x: 0,
+      barRods: [BarChartRodData(toY: 85, color: Colors.blue, width: 20)],
+    ),
+    BarChartGroupData(
+      x: 1,
+      barRods: [BarChartRodData(toY: 78, color: Colors.green, width: 20)],
+    ),
+    BarChartGroupData(
+      x: 2,
+      barRods: [BarChartRodData(toY: 72, color: Colors.orange, width: 20)],
+    ),
+    BarChartGroupData(
+      x: 3,
+      barRods: [BarChartRodData(toY: 65, color: Colors.red, width: 20)],
+    ),
+    BarChartGroupData(
+      x: 4,
+      barRods: [BarChartRodData(toY: 58, color: Colors.purple, width: 20)],
+    ),
+  ];
+});
+
+// Provider for line chart data
+final lineChartDataProvider = Provider<List<FlSpot>>((ref) {
+  return const [
+    FlSpot(0, 20),
+    FlSpot(1, 35),
+    FlSpot(2, 50),
+    FlSpot(3, 65),
+    FlSpot(4, 75),
+    FlSpot(5, 85),
+  ];
+});
+
+class LeaderboardPage extends ConsumerWidget {
   const LeaderboardPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final placements = ref.watch(placementsDataProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -26,14 +164,14 @@ class LeaderboardPage extends StatelessWidget {
               // First Graph - Placement Statistics
               _buildGraphCard(
                 title: 'Placement Statistics 2024',
-                graph: _buildBarChart(),
+                graph: _buildBarChart(ref),
               ),
               const SizedBox(height: 24),
 
               // Second Graph - Branch-wise Placements
               _buildGraphCard(
                 title: 'Branch-wise Placements',
-                graph: _buildLineChart(),
+                graph: _buildLineChart(ref),
               ),
               const SizedBox(height: 24),
 
@@ -53,9 +191,9 @@ class LeaderboardPage extends StatelessWidget {
                 height: 240,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: 13,
+                  itemCount: placements.length,
                   itemBuilder: (context, index) {
-                    return _buildPlacementCard(index + 1);
+                    return _buildPlacementCard(index + 1, placements[index]);
                   },
                 ),
               ),
@@ -99,7 +237,9 @@ class LeaderboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBarChart() {
+  Widget _buildBarChart(WidgetRef ref) {
+    final barGroups = ref.watch(barChartDataProvider);
+
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
@@ -142,37 +282,14 @@ class LeaderboardPage extends StatelessWidget {
           ),
         ),
         borderData: FlBorderData(show: false),
-        barGroups: [
-          BarChartGroupData(
-            x: 0,
-            barRods: [BarChartRodData(toY: 85, color: Colors.blue, width: 20)],
-          ),
-          BarChartGroupData(
-            x: 1,
-            barRods: [BarChartRodData(toY: 78, color: Colors.green, width: 20)],
-          ),
-          BarChartGroupData(
-            x: 2,
-            barRods: [
-              BarChartRodData(toY: 72, color: Colors.orange, width: 20),
-            ],
-          ),
-          BarChartGroupData(
-            x: 3,
-            barRods: [BarChartRodData(toY: 65, color: Colors.red, width: 20)],
-          ),
-          BarChartGroupData(
-            x: 4,
-            barRods: [
-              BarChartRodData(toY: 58, color: Colors.purple, width: 20),
-            ],
-          ),
-        ],
+        barGroups: barGroups,
       ),
     );
   }
 
-  Widget _buildLineChart() {
+  Widget _buildLineChart(WidgetRef ref) {
+    final spots = ref.watch(lineChartDataProvider);
+
     return LineChart(
       LineChartData(
         gridData: const FlGridData(show: true),
@@ -215,14 +332,7 @@ class LeaderboardPage extends StatelessWidget {
         borderData: FlBorderData(show: true),
         lineBarsData: [
           LineChartBarData(
-            spots: const [
-              FlSpot(0, 20),
-              FlSpot(1, 35),
-              FlSpot(2, 50),
-              FlSpot(3, 65),
-              FlSpot(4, 75),
-              FlSpot(5, 85),
-            ],
+            spots: spots,
             isCurved: true,
             color: Colors.blue,
             barWidth: 3,
@@ -237,104 +347,7 @@ class LeaderboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPlacementCard(int rank) {
-    // Sample data with package information
-    final placements = [
-      {
-        'name': 'Anshuman Nandan',
-        'branch': 'Computer Science',
-        'company': 'Google',
-        'package': '₹30 LPA',
-        'image': 'assets/1.png',
-      },
-      {
-        'name': 'Archas Srivastava',
-        'branch': 'Information Technology',
-        'company': 'Goldman Sachs',
-        'package': '₹21 LPA',
-        'image': 'assets/2.png',
-      },
-      {
-        'name': 'Soumya Maheshwari',
-        'branch': 'Computer Science',
-        'company': 'Googe',
-        'package': '₹13.2 LPA',
-        'image': 'assets/3.png',
-      },
-      {
-        'name': 'Garima Gautam',
-        'branch': 'Electronics',
-        'company': 'Amazon',
-        'package': '₹13.2 LPA',
-        'image': 'assets/4.png',
-      },
-      {
-        'name': 'SAKSHAM TIWARI',
-        'branch': 'Computer Science',
-        'company': 'Meta',
-        'package': '₹42.75 LPA',
-        'image': 'assets/5.png',
-      },
-      {
-        'name': 'SAUMYA CHAUDHARY',
-        'branch': 'Information Technology',
-        'company': 'Uber',
-        'package': '₹38.44 LPA',
-        'image': 'assets/6.png',
-      },
-      {
-        'name': 'SUYASH SINGH',
-        'branch': 'Computer Science',
-        'company': 'Netflix',
-        'package': '₹34 LPA',
-        'image': 'assets/7.png',
-      },
-      {
-        'name': 'PARAS PANDEY',
-        'branch': 'Electronics',
-        'company': 'Intel',
-        'package': '₹32 LPA',
-        'image': 'assets/8.png',
-      },
-      {
-        'name': 'SHREYANSHI SINGH ',
-        'branch': 'Computer Science',
-        'company': 'PhonePe',
-        'package': '₹30 LPA',
-        'image': 'assets/9.png',
-      },
-      {
-        'name': 'APOORV MAHESHWARI B. ',
-        'branch': 'Information Technology',
-        'company': 'Salesforce',
-        'package': '₹28 LPA',
-        'image': 'assets/10.png',
-      },
-      {
-        'name': 'DEEPAK SHARMA',
-        'branch': 'Computer Science',
-        'company': 'Oracle',
-        'package': '₹26 LPA',
-        'image': 'assets/11.png',
-      },
-      {
-        'name': 'MADHUR VASHISTHA B. ',
-        'branch': 'Electronics',
-        'company': 'Qualcomm',
-        'package': '₹25 LPA',
-        'image': 'assets/12.png',
-      },
-      {
-        'name': 'MUSKAN AGRAWAL ',
-        'branch': 'Computer Science',
-        'company': 'LinkedIn',
-        'package': '₹24 LPA',
-        'image': 'assets/13.png',
-      },
-    ];
-
-    final data = placements[rank - 1];
-
+  Widget _buildPlacementCard(int rank, Map<String, String> data) {
     return Container(
       width: 300,
       margin: const EdgeInsets.only(right: 16),

@@ -1,40 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../services/chat_service.dart';
 import 'chat_detail_page.dart';
 
-class ChatsScreen extends StatefulWidget {
-  const ChatsScreen({Key? key}) : super(key: key);
+final chatsProvider = StateNotifierProvider<ChatsNotifier, ChatsState>(
+  (ref) => ChatsNotifier(),
+);
 
-  @override
-  State<ChatsScreen> createState() => _ChatsScreenState();
+class ChatsState {
+  final List<dynamic> chats;
+  final bool isLoading;
+  final String? errorMessage;
+
+  ChatsState({
+    this.chats = const [],
+    this.isLoading = true,
+    this.errorMessage,
+  });
+
+  ChatsState copyWith({
+    List<dynamic>? chats,
+    bool? isLoading,
+    String? errorMessage,
+  }) {
+    return ChatsState(
+      chats: chats ?? this.chats,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+    );
+  }
 }
 
-class _ChatsScreenState extends State<ChatsScreen> {
-  List<dynamic> _chats = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadChats();
+class ChatsNotifier extends StateNotifier<ChatsState> {
+  ChatsNotifier() : super(ChatsState()) {
+    loadChats();
   }
 
-  // ✅ LOAD CHATS FROM API
-  Future<void> _loadChats() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> loadChats() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
       print('📥 Loading chats...');
 
       final result = await ChatService.fetchChats();
-
-      if (!mounted) return;
 
       print('📊 fetchChats result:');
       print('   Success: ${result['success']}');
@@ -44,38 +53,42 @@ class _ChatsScreenState extends State<ChatsScreen> {
       if (result['success']) {
         final chats = result['chats'] ?? [];
 
-        setState(() {
-          _chats = chats;
-          _isLoading = false;
-        });
+        state = state.copyWith(
+          chats: chats,
+          isLoading: false,
+          errorMessage: null,
+        );
 
-        print('✅ Loaded ${_chats.length} chats');
-        for (var i = 0; i < _chats.length; i++) {
-          final chat = _chats[i];
+        print('✅ Loaded ${state.chats.length} chats');
+        for (var i = 0; i < state.chats.length; i++) {
+          final chat = state.chats[i];
           print('   [$i] ${chat['chatName']} (${chat['id']})');
         }
       } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              result['message'] ?? 'Failed to load chats';
-        });
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: result['message'] ?? 'Failed to load chats',
+          chats: [],
+        );
         print('❌ Error: ${result['message']}');
       }
     } catch (e) {
       print('❌ Exception: $e');
-      if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error: $e';
-      });
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Error: $e',
+        chats: [],
+      );
     }
   }
+}
 
-  // ✅ OPEN CHAT DETAIL
-  void _openChat(dynamic chat) {
-    final chatId = chat['id']; // ✅ GET chatId
+class ChatsScreen extends ConsumerWidget {
+  const ChatsScreen({Key? key}) : super(key: key);
+
+  void _openChat(BuildContext context, dynamic chat) {
+    final chatId = chat['id']; 
     final chatName = chat['chatName'];
 
     print('🔗 Opening chat:');
@@ -97,15 +110,18 @@ class _ChatsScreenState extends State<ChatsScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => ChatDetailPage(
-          chatId: chatId, // ✅ PASS chatId
-          chatName: chatName, groupId: '',
+          chatId: chatId, 
+          chatName: chatName,
+          groupId: '',
         ),
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatsState = ref.watch(chatsProvider);
+
     return Scaffold(
       appBar: AppBar(
         elevation: 6,
@@ -121,16 +137,16 @@ class _ChatsScreenState extends State<ChatsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadChats,
+            onPressed: () => ref.read(chatsProvider.notifier).loadChats(),
             tooltip: 'Refresh chats',
           ),
         ],
       ),
-      body: _isLoading
+      body: chatsState.isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Colors.blue),
             )
-          : _errorMessage != null
+          : chatsState.errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -153,7 +169,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          _errorMessage ?? 'Unknown error',
+                          chatsState.errorMessage ?? 'Unknown error',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.red[500],
@@ -163,7 +179,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        onPressed: _loadChats,
+                        onPressed: () =>
+                            ref.read(chatsProvider.notifier).loadChats(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Retry'),
                         style: ElevatedButton.styleFrom(
@@ -173,7 +190,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     ],
                   ),
                 )
-              : _chats.isEmpty
+              : chatsState.chats.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -202,7 +219,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
-                            onPressed: _loadChats,
+                            onPressed: () =>
+                                ref.read(chatsProvider.notifier).loadChats(),
                             icon: const Icon(Icons.refresh),
                             label: const Text('Refresh'),
                             style: ElevatedButton.styleFrom(
@@ -214,23 +232,21 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(8),
-                      itemCount: _chats.length,
+                      itemCount: chatsState.chats.length,
                       itemBuilder: (context, index) {
-                        final chat = _chats[index];
+                        final chat = chatsState.chats[index];
 
                         if (chat is! Map) {
                           return const SizedBox.shrink();
                         }
 
-                        final chatId = chat['id']; // ✅ GET chatId
+                        final chatId = chat['id']; 
                         final chatName = chat['chatName'] ?? 'Chat';
                         final isGroupChat = chat['isGroupChat'] ?? false;
                         final userCount = chat['users']?.length ?? 0;
-                        final latestMessage =
-                            chat['latestMessage'] ?? '';
+                        final latestMessage = chat['latestMessage'] ?? '';
 
-                        print(
-                            '📌 Chat $index: $chatName (ID: $chatId)');
+                        print('📌 Chat $index: $chatName (ID: $chatId)');
 
                         return Card(
                           margin: const EdgeInsets.symmetric(
@@ -245,9 +261,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                   ? Colors.orange.shade400
                                   : Colors.blue.shade400,
                               child: Icon(
-                                isGroupChat
-                                    ? Icons.group
-                                    : Icons.person,
+                                isGroupChat ? Icons.group : Icons.person,
                                 color: Colors.white,
                                 size: 24,
                               ),
@@ -263,8 +277,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
                                 if (isGroupChat)
@@ -277,8 +290,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                   ),
                                 if (latestMessage.isNotEmpty)
                                   Padding(
-                                    padding:
-                                        const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.only(top: 4),
                                     child: Text(
                                       latestMessage,
                                       style: TextStyle(
@@ -295,13 +307,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               Icons.chevron_right,
                               color: Colors.grey[400],
                             ),
-                            onTap: () => _openChat(chat), // ✅ PASS chat
+                            onTap: () => _openChat(context, chat), 
                           ),
                         );
                       },
                     ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _loadChats,
+        onPressed: () => ref.read(chatsProvider.notifier).loadChats(),
         backgroundColor: Colors.blue.shade600,
         tooltip: 'Refresh chats',
         child: const Icon(Icons.refresh, color: Colors.white),

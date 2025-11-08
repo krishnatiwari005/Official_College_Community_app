@@ -1,37 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'screens/home_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/post_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/others.dart';
 
-class NavBarPage extends StatefulWidget {
-  const NavBarPage({Key? key}) : super(key: key);
+final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
-  @override
-  State<NavBarPage> createState() => _NavBarPageState();
-}
-
-class _NavBarPageState extends State<NavBarPage>
-    with SingleTickerProviderStateMixin {
-  int _currentIndex = 0;
-  late PageController _pageController;
-
-  final List<Widget> _pages = const [
+final pagesProvider = Provider<List<Widget>>((ref) {
+  return const [
     HomeScreen(),
     ChatPage(),
     PostScreen(),
     ProfileScreen(),
     OthersScreen(),
   ];
+});
 
-  final List<Color> _navColors = const [
+final navColorsProvider = Provider<List<Color>>((ref) {
+  return const [
     Color(0xFFAEDFF7),
     Color.fromARGB(255, 161, 204, 245),
     Color(0xFFAEDFF7),
     Color.fromARGB(255, 161, 204, 245),
     Color(0xFFAEDFF7),
   ];
+});
+
+final navIconsProvider = Provider<Map<String, List<IconData>>>((ref) {
+  return {
+    'icons': const [
+      Icons.home_outlined,
+      Icons.chat_outlined,
+      Icons.add,
+      Icons.person_outlined,
+      Icons.more_horiz_outlined,
+    ],
+    'activeIcons': const [
+      Icons.home,
+      Icons.chat,
+      Icons.add,
+      Icons.person,
+      Icons.more_horiz,
+    ],
+  };
+});
+
+final navLabelsProvider = Provider<List<String>>((ref) {
+  return ['Home', 'Chat', 'Post', 'Profile', 'Others'];
+});
+
+class NavBarPage extends ConsumerStatefulWidget {
+  const NavBarPage({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<NavBarPage> createState() => _NavBarPageState();
+}
+
+class _NavBarPageState extends ConsumerState<NavBarPage>
+    with SingleTickerProviderStateMixin {
+  late PageController _pageController;
 
   @override
   void initState() {
@@ -47,16 +77,20 @@ class _NavBarPageState extends State<NavBarPage>
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(navigationIndexProvider);
+    final pages = ref.watch(pagesProvider);
+    final navColors = ref.watch(navColorsProvider);
+    final navIcons = ref.watch(navIconsProvider);
+    final navLabels = ref.watch(navLabelsProvider);
+
     return Scaffold(
       body: PageView(
         controller: _pageController,
         physics: const BouncingScrollPhysics(),
         onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          ref.read(navigationIndexProvider.notifier).state = index;
         },
-        children: _pages,
+        children: pages,
       ),
 
       bottomNavigationBar: Stack(
@@ -71,15 +105,13 @@ class _NavBarPageState extends State<NavBarPage>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeInOut,
-              color: _navColors[_currentIndex],
-              padding: const EdgeInsets.only(top: 6), 
-              height: 115,  
+              color: navColors[currentIndex],
+              padding: const EdgeInsets.only(top: 6),
+              height: 115,
               child: BottomNavigationBar(
-                currentIndex: _currentIndex,
+                currentIndex: currentIndex,
                 onTap: (int index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
+                  ref.read(navigationIndexProvider.notifier).state = index;
                   _pageController.animateToPage(
                     index,
                     duration: const Duration(milliseconds: 400),
@@ -94,23 +126,10 @@ class _NavBarPageState extends State<NavBarPage>
                 showSelectedLabels: true,
                 showUnselectedLabels: true,
                 items: List.generate(5, (index) {
-                  const icons = [
-                    Icons.home_outlined,
-                    Icons.chat_outlined,
-                    Icons.add,
-                    Icons.person_outlined,
-                    Icons.more_horiz_outlined,
-                  ];
-                  const activeIcons = [
-                    Icons.home,
-                    Icons.chat,
-                    Icons.add,
-                    Icons.person,
-                    Icons.more_horiz,
-                  ];
-                  const labels = ['Home', 'Chat', 'Post', 'Profile', 'Others'];
+                  final icons = navIcons['icons']!;
+                  final activeIcons = navIcons['activeIcons']!;
 
-                  final isSelected = _currentIndex == index;
+                  final isSelected = currentIndex == index;
 
                   return BottomNavigationBarItem(
                     icon: _BouncyIcon(
@@ -118,18 +137,18 @@ class _NavBarPageState extends State<NavBarPage>
                       activeIcon: activeIcons[index],
                       isActive: isSelected,
                     ),
-                    label: labels[index],
+                    label: navLabels[index],
                   );
                 }),
               ),
             ),
           ),
           Positioned(
-            bottom: 3,  
+            bottom: 3,
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
-              alignment: _indicatorAlignment(_currentIndex),
+              alignment: _indicatorAlignment(currentIndex),
               child: Container(
                 height: 5,
                 width: 24,
