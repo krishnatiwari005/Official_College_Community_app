@@ -6,7 +6,7 @@ import 'post_service.dart';
 class CommentService {
   static const String baseUrl = 'https://college-community-app-backend.onrender.com';
 
-  static Future<Map<String, dynamic>> addComment(post, String trim, {
+  static Future<Map<String, dynamic>> addComment({
     required String postId,
     required String text,
   }) async {
