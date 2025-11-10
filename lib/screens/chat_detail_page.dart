@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../services/chat_service.dart';
+import '../services/socket_service.dart';
 
 // Provider for messages state
 final messagesProvider =
@@ -9,7 +10,6 @@ final messagesProvider =
       (ref, chatId) => MessagesNotifier(chatId),
     );
 
-// Messages state class
 class MessagesState {
   final List<dynamic> messages;
   final bool isLoading;
@@ -38,7 +38,6 @@ class MessagesState {
   }
 }
 
-// Messages notifier
 class MessagesNotifier extends StateNotifier<MessagesState> {
   final String chatId;
 
@@ -57,7 +56,6 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       print('📊 Result:');
       print('   Success: ${result['success']}');
       print('   Count: ${result['count']}');
-      print('   Message: ${result['message']}');
 
       if (result['success']) {
         final messages = result['messages'] ?? [];
@@ -89,6 +87,11 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
     }
   }
 
+  void addMessage(dynamic message) {
+    state = state.copyWith(messages: [...state.messages, message]);
+    print('➕ Message added via WebSocket');
+  }
+
   Future<Map<String, dynamic>> sendMessage(String content) async {
     if (content.isEmpty) {
       return {'success': false, 'message': 'Message cannot be empty'};
@@ -107,10 +110,6 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
 
       if (result['success']) {
         print('✅ Message sent successfully');
-        print('   Message ID: ${result['messageId']}');
-
-        // Reload messages
-        await loadMessages();
       } else {
         print('❌ Error: ${result['message']}');
       }
@@ -143,15 +142,52 @@ class ChatDetailPage extends ConsumerStatefulWidget {
 class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  bool _isOtherUserTyping = false;
+  @override
+  void initState() {
+    super.initState();
+    _initializeWebSocket();
+  }
+
+  void _initializeWebSocket() async {
+    if (!SocketService.isConnected) {
+      await SocketService.connect();
+    }
+
+    SocketService.joinRoom(widget.chatId);
+
+    SocketService.onNewMessage((data) {
+      print('📥 New message received: $data');
+
+      if (mounted) {
+        ref.read(messagesProvider(widget.chatId).notifier).addMessage(data);
+        _scrollToBottom();
+      }
+    });
+
+    SocketService.onUserTyping((data) {
+      print('⌨️ User typing: $data');
+
+      if (mounted) {
+        setState(() {
+          _isOtherUserTyping = data['isTyping'] ?? false;
+        });
+      }
+    });
+
+    SocketService.markAsRead(widget.chatId);
+  }
 
   @override
   void dispose() {
+    SocketService.leaveRoom(widget.chatId);
+    SocketService.removeAllListeners();
+
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  // ✅ SEND MESSAGE METHOD
   Future<void> _sendMessage() async {
     final content = _messageController.text.trim();
 
@@ -166,36 +202,15 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       return;
     }
 
-    final result = await ref
-        .read(messagesProvider(widget.chatId).notifier)
-        .sendMessage(content);
+    SocketService.sendMessage(roomId: widget.chatId, message: content);
 
-    if (!mounted) return;
+    _messageController.clear();
 
-    if (result['success']) {
-      _messageController.clear();
+    SocketService.sendTypingStatus(widget.chatId, false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Message sent'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 500),
-        ),
-      );
-
-      _scrollToBottom();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ ${result['message']}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    _scrollToBottom();
   }
 
-  // ✅ SCROLL TO BOTTOM
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -208,7 +223,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     });
   }
 
-  // ✅ FORMAT MESSAGE TIME
   String _formatMessageTime(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '';
     try {
@@ -231,14 +245,17 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     final messagesState = ref.watch(messagesProvider(widget.chatId));
 
     return Scaffold(
-      // ✅ APP BAR
       appBar: AppBar(
         elevation: 6,
         backgroundColor: Colors.blue.shade600,
         toolbarHeight: 70,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            SocketService.leaveRoom(widget.chatId);
+            SocketService.removeAllListeners();
+            Navigator.pop(context);
+          },
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,10 +272,28 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             Text(
               'Online',
               style: TextStyle(fontSize: 12, color: Colors.green[200]),
+              _isOtherUserTyping ? 'typing...' : 'Online',
+              style: TextStyle(
+                fontSize: 12,
+                color: _isOtherUserTyping
+                    ? Colors.yellow[200]
+                    : Colors.green[200],
+                fontStyle: _isOtherUserTyping
+                    ? FontStyle.italic
+                    : FontStyle.normal,
+              ),
             ),
           ],
         ),
         actions: [
+          Icon(
+            SocketService.isConnected ? Icons.wifi : Icons.wifi_off,
+            color: SocketService.isConnected
+                ? Colors.green[200]
+                : Colors.red[200],
+            size: 20,
+          ),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => ref
@@ -284,6 +319,16 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       fontWeight: FontWeight.bold,
                       color: Colors.red[600],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      messagesState.errorMessage ?? 'Unknown error',
+                      style: TextStyle(fontSize: 14, color: Colors.red[500]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
@@ -420,6 +465,39 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                                   ),
                                   const SizedBox(height: 4),
                                   // Timestamp
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.blue.shade200,
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      content,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
                                   Text(
                                     _formatMessageTime(timestamp),
                                     style: TextStyle(
@@ -476,6 +554,79 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                         ),
                         const SizedBox(width: 8),
                         // Send button
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.blue.shade600,
+                          child: IconButton(
+                            icon: messagesState.isSending
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.send,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                            onPressed: messagesState.isSending
+                                ? null
+                                : _sendMessage,
+                          ),
+                        ),
+                        ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                  ),
+                  child: SafeArea(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: TextField(
+                              controller: _messageController,
+                              maxLines: null,
+                              enabled: !messagesState.isSending,
+                              decoration: InputDecoration(
+                                hintText: 'Type a message...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                              onChanged: (text) {
+                                SocketService.sendTypingStatus(
+                                  widget.chatId,
+                                  text.isNotEmpty,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         CircleAvatar(
                           radius: 24,
                           backgroundColor: Colors.blue.shade600,

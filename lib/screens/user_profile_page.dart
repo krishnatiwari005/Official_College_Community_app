@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/chat_service.dart';  
+import 'chat_detail_page.dart'; 
 
 class UserProfilePage extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -7,6 +9,78 @@ class UserProfilePage extends StatelessWidget {
     Key? key,
     required this.userData,
   }) : super(key: key);
+
+  Future<void> _openDirectChat(BuildContext context) async {
+  final userId = userData['_id'] ?? 
+                 userData['id'] ?? 
+                 userData['user_id'] ??  
+                 '';
+  final userName = userData['name'] ?? 'Unknown User';
+
+  print('🔍 Opening direct chat:');
+  print('   User ID: $userId');
+  print('   User Name: $userName');
+  print('   Available fields: ${userData.keys.toList()}'); 
+
+  if (userId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('❌ Invalid user ID'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final result = await ChatService.getOrCreateDirectChat(userId);
+
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
+
+      if (result['success']) {
+        final chat = result['chat'];
+        final chatId = chat['_id'] ?? chat['id'];
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(
+              chatId: chatId,
+              chatName: userName,
+              groupId: '',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message'] ?? 'Failed to open chat'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +93,6 @@ class UserProfilePage extends StatelessWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Gradient AppBar with profile header
           SliverAppBar(
             expandedHeight: 280,
             floating: false,
@@ -41,7 +114,6 @@ class UserProfilePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 60),
-                    // Profile Avatar
                     CircleAvatar(
                       radius: 60,
                       backgroundColor: Colors.white,
@@ -59,7 +131,6 @@ class UserProfilePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // User Name
                     Text(
                       userName,
                       style: const TextStyle(
@@ -69,7 +140,6 @@ class UserProfilePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // User Email
                     Text(
                       userEmail,
                       style: const TextStyle(
@@ -94,7 +164,6 @@ class UserProfilePage extends StatelessWidget {
             ),
           ),
 
-          // Profile Details Section
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
@@ -112,7 +181,6 @@ class UserProfilePage extends StatelessWidget {
                 children: [
                   const SizedBox(height: 20),
 
-                  // Info Cards
                   _buildInfoCard(
                     icon: Icons.person,
                     title: 'Name',
@@ -143,20 +211,13 @@ class UserProfilePage extends StatelessWidget {
                     ),
 
                   const SizedBox(height: 20),
-
-                  // Action Buttons
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // TODO: Navigate to chat
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Chat feature coming soon!')),
-                              );
-                            },
+                            onPressed: () => _openDirectChat(context),
                             icon: const Icon(Icons.chat),
                             label: const Text('Message'),
                             style: ElevatedButton.styleFrom(
@@ -172,7 +233,6 @@ class UserProfilePage extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // TODO: View posts
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('View posts feature coming soon!')),
                               );

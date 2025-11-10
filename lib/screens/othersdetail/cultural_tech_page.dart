@@ -13,6 +13,8 @@ class _SocietiesPageState extends State<SocietiesPage> {
   bool isTechSelected = false;
 
   final List<Map<String, dynamic>> culturalSocieties = [
+final societiesProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  return [
     {
       'name': 'Euphony',
       'description': 'Music',
@@ -348,6 +350,14 @@ class _SocietiesPageState extends State<SocietiesPage> {
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: photos.length,
+              itemBuilder: (context, photoIndex) {
+                return _buildPhotoCard(photos[photoIndex], photoIndex, color);
+              },
             ),
           ),
         ),
@@ -398,6 +408,42 @@ class _SocietiesPageState extends State<SocietiesPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
+  Widget _buildPhotoCard(String photoPath, int index, Color color) {
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 280,
+              height: 200,
+              color: Colors.grey[200],
+              child: Image.asset(
+                photoPath,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          color.withOpacity(0.3),
+                          color.withOpacity(0.6),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -440,6 +486,47 @@ class _SocietiesPageState extends State<SocietiesPage> {
                       ),
                     ),
                   ],
+                  );
+                },
+              ),
+            ),
+          ),
+
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${index + 1}/4',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
                 const SizedBox(height: 14),
                 // Photos

@@ -166,6 +166,7 @@ class MentalHealthPage extends ConsumerWidget {
 
   // Glassmorphic Professional Card
   Widget _glassProfessionalCard(BuildContext context, Professional p) {
+  Widget _professionalCard(BuildContext context, Professional p) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ClipRRect(

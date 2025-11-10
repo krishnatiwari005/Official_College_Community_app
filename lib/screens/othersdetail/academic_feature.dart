@@ -52,6 +52,15 @@ class AcademicFeature extends ConsumerWidget {
             fontSize: 24,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.3,
+            shadows: [
+              Shadow(
+                color: Colors.black45,
+                offset: Offset(1, 2),
+                blurRadius: 4,
+              ),
+            ],
           ),
         ),
         centerTitle: true,
@@ -61,6 +70,11 @@ class AcademicFeature extends ConsumerWidget {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xff4A148C), Color(0xff6A1B9A), Color(0xff8E24AA)],
+              colors: [
+                Color(0xFF09276D), 
+                Color(0xFF1661B2),
+                Color(0xFF09276D),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -94,6 +108,35 @@ class AcademicFeature extends ConsumerWidget {
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 24,
                 childAspectRatio: 0.95,
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/academics.jpg'), 
+                fit: BoxFit.cover, 
+              ),
+            ),
+          ),
+
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                ),
+                shrinkWrap: true,
+                itemCount: academicBlocks.length,
+                itemBuilder: (context, index) {
+                  final block = academicBlocks[index];
+                  return _buildFeatureBlock(
+                    context,
+                    title: block['title'] as String,
+                    color: block['color'] as Color,
+                    page: block['page'] as Widget,
+                  );
+                },
               ),
               itemCount: academicBlocks.length,
               itemBuilder: (context, index) {
@@ -140,6 +183,32 @@ class AcademicFeature extends ConsumerWidget {
                   blurRadius: 15,
                   spreadRadius: 1,
                   offset: const Offset(3, 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(2, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22, 
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.3,
+              shadows: [
+                Shadow(
+                  color: Colors.black54, 
+                  offset: Offset(2, 2),
+                  blurRadius: 4,
                 ),
               ],
             ),
