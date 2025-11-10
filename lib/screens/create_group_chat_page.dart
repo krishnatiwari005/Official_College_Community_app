@@ -372,6 +372,25 @@ class _CreateGroupChatDialogState extends ConsumerState<CreateGroupChatDialog> {
                               ),
                             ),
                           ],
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF162447),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.lightBlueAccent),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.info,
+                          color: Colors.lightBlueAccent, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'You will be the group admin',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

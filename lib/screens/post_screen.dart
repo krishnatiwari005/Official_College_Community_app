@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:community_app/widgets/multi_select_categories_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,26 +19,110 @@ class PostScreen extends ConsumerStatefulWidget {
 class _PostScreenState extends ConsumerState<PostScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _categoryController = TextEditingController();
   File? _mediaFile;
   bool _isLoading = false;
   String? _error;
-
+  List<String> _selectedCategories = [];
   final _picker = ImagePicker();
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _categoryController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
-    try {
+  try {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Select Image Source',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.blue,
+                          size: 26,
+                        ),
+                      ),
+                      title: const Text(
+                        'Camera',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text('Take a new photo'),
+                      onTap: () => Navigator.pop(context, ImageSource.camera),
+                    ),
+                    
+                    const Divider(height: 1),
+                    
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.photo_library,
+                          color: Colors.green,
+                          size: 26,
+                        ),
+                      ),
+                      title: const Text(
+                        'Gallery',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: const Text('Choose from gallery'),
+                      onTap: () => Navigator.pop(context, ImageSource.gallery),
+                    ),
+                    
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source != null) {
       final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1080,
       );
 
       if (pickedFile != null) {
@@ -45,12 +130,23 @@ class _PostScreenState extends ConsumerState<PostScreen> {
           _mediaFile = File(pickedFile.path);
           _error = null;
         });
-        print('📸 Image selected: ${pickedFile.name}');
+        print('📸 Image selected from ${source == ImageSource.camera ? "Camera" : "Gallery"}: ${pickedFile.name}');
       }
-    } catch (e) {
-      print('❌ Error picking image: $e');
+    }
+  } catch (e) {
+    print('❌ Error picking image: $e');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
+
 
   Future<void> _submitPost() async {
     if (_titleController.text.trim().isEmpty) {
@@ -63,8 +159,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       return;
     }
 
-    if (_categoryController.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter a category');
+    if (_selectedCategories.isEmpty) {
+      setState(() => _error = 'Please select at least one category');
       return;
     }
 
@@ -74,11 +170,19 @@ class _PostScreenState extends ConsumerState<PostScreen> {
     });
 
     try {
+      final categoryString = _selectedCategories.join(', ');
+      
+      print('📝 Creating post...');
+      print('   Title: ${_titleController.text}');
+      print('   Description: ${_descriptionController.text}');
+      print('   Category: $categoryString');
+      print('   Has media: ${_mediaFile != null}');
+
       final postFormNotifier = ref.read(postFormProvider.notifier);
 
       postFormNotifier.setTitle(_titleController.text.trim());
       postFormNotifier.setDescription(_descriptionController.text.trim());
-      postFormNotifier.setCategory(_categoryController.text.trim());
+      postFormNotifier.setCategory(categoryString); // Send as comma-separated string
 
       if (_mediaFile != null) {
         postFormNotifier.setMediaFile(_mediaFile);
@@ -91,12 +195,13 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       if (result['success']) {
         _titleController.clear();
         _descriptionController.clear();
-        _categoryController.clear();
 
         setState(() {
           _mediaFile = null;
+          _selectedCategories = [];
           _error = null;
         });
+        
         ref.refresh(postsProvider);
         ref.refresh(userPostsProvider);
 
@@ -142,6 +247,8 @@ class _PostScreenState extends ConsumerState<PostScreen> {
   @override
   Widget build(BuildContext context) {
     final token = ref.watch(authTokenProvider);
+
+    print('🔍 PostScreen build - Token: ${token?.substring(0, 20) ?? "null"}...');
 
     if (token == null || token.isEmpty) {
       return Scaffold(
@@ -228,6 +335,50 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       
                       
                     ],
+
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_error != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                const Text(
+                  'Title',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    hintText: 'What\'s on your mind?',
+                    prefixIcon: const Icon(Icons.title, color: Colors.blue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    counterText: '${_titleController.text.length}/100',
                   ),
                   borderColor: Colors.red.shade300,
                   bgColor: const Color.fromARGB(255, 216, 207, 223).withOpacity(0.2),
@@ -319,6 +470,41 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                       ),
                     ),
                   ],
+                const Text(
+                  'Description',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(
+                    hintText: 'Tell us more...',
+                    prefixIcon: const Icon(Icons.description, color: Colors.blue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    alignLabelWithHint: true,
+                    counterText: '${_descriptionController.text.length}/500',
+                  ),
+                  maxLines: 5,
+                  maxLength: 500,
+                  enabled: !_isLoading,
+                  onChanged: (value) => setState(() {}),
+                ),
+                const SizedBox(height: 16),
+
+                const Text(
+                  'Categories *',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                MultiSelectCategoriesDropdown(
+                  selectedCategories: _selectedCategories,
+                  onChanged: (selected) {
+                    setState(() {
+                      _selectedCategories = selected;
+                    });
+                  },
                 ),
                 const SizedBox(height: 16),
               ],
@@ -352,6 +538,15 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: _isLoading ? null : () => setState(() => _mediaFile = null),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
                             ),
                             Text(
                               'Choose from gallery',
@@ -378,6 +573,20 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                     backgroundColor: const Color.fromARGB(255, 100, 32, 195),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
+                  const SizedBox(height: 16),
+                ],
+
+                GestureDetector(
+                  onTap: _isLoading ? null : _pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.blue.shade300,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.blue.shade50,
                     ),
                   ),
                   child: _isLoading
@@ -400,6 +609,26 @@ class _PostScreenState extends ConsumerState<PostScreen> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _mediaFile == null ? 'Add Photo' : 'Change Photo',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                              Text(
+                                'Choose from gallery',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                ),
                               ),
                             ),
                           ],
@@ -413,6 +642,27 @@ class _PostScreenState extends ConsumerState<PostScreen> {
       ),
     );
   }
+}
+
+class AnimatedGradientBackground extends StatefulWidget {
+  const AnimatedGradientBackground({Key? key}) : super(key: key);
+
+  @override
+  State<AnimatedGradientBackground> createState() => _AnimatedGradientBackgroundState();
+}
+
+class _AnimatedGradientBackgroundState extends State<AnimatedGradientBackground>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Alignment> _alignmentAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )..repeat(reverse: true);
 
   // Glassmorphic container helper
   Widget _glassBox({

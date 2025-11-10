@@ -10,13 +10,11 @@ import '../services/chat_service.dart';
 import 'chat_detail_page.dart';
 import 'group_members_screen.dart';
 
-// Provider for user search state
 final userSearchProvider =
     StateNotifierProvider<UserSearchNotifier, UserSearchState>(
       (ref) => UserSearchNotifier(),
     );
 
-// User search state class
 class UserSearchState {
   final List<dynamic> filteredUsers;
   final bool isSearching;
@@ -31,7 +29,6 @@ class UserSearchState {
   }
 }
 
-// User search notifier
 class UserSearchNotifier extends StateNotifier<UserSearchState> {
   UserSearchNotifier() : super(UserSearchState());
 
@@ -49,7 +46,6 @@ class UserSearchNotifier extends StateNotifier<UserSearchState> {
   }
 }
 
-// Provider for rename state
 final renameStateProvider = StateProvider<bool>((ref) => false);
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -738,6 +734,198 @@ class _ChatPageState extends ConsumerState<ChatPage>
   ),
 ),
                        ),
+                          child: Card(
+                            elevation: 6,
+                            color: Colors.blue.shade800.withOpacity(0.85),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ListTile(
+                              onTap: () {
+                                Navigator.pop(context);
+                                ref.read(userSearchProvider.notifier).clearSearch();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatDetailPage(
+                                      chatId: group.id,  
+                                      chatName: group.chatName,
+                                      groupId: group.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onLongPress: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) => Container(
+                                    color: Colors.grey[900],
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: Icon(
+                                            Icons.edit,
+                                            color: Colors.blue[400],
+                                            size: 24,
+                                          ),
+                                          title: const Text(
+                                            'Rename Group',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            _showRenameDialog(
+                                              group.id,
+                                              group.chatName,
+                                            );
+                                          },
+                                        ),
+                                        const Divider(
+                                          color: Colors.grey,
+                                          height: 1,
+                                        ),
+                                        ListTile(
+                                          leading: Icon(
+                                            Icons.people,
+                                            color: Colors.blue,
+                                          ),
+                                          title: const Text(
+                                            'View Members',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    GroupMembersScreen(
+                                                      groupId: group.id,
+                                                      groupName: group.chatName,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        const Divider(
+                                          color: Colors.grey,
+                                          height: 1,
+                                        ),
+                                        ListTile(
+                                          leading: Icon(
+                                            Icons.exit_to_app,
+                                            color: Colors.red,
+                                          ),
+                                          title: const Text(
+                                            'Leave Group',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          onTap: () {
+                                            Navigator.pop(context);
+                                            _leaveGroup(
+                                              group.id,
+                                              group.chatName,
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                              leading: CircleAvatar(
+                                radius: 28,
+                                backgroundColor: Colors.lightBlueAccent,
+                                child: Text(
+                                  group.chatName.isNotEmpty
+                                      ? group.chatName[0].toUpperCase()
+                                      : 'G',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 22,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                group.chatName,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      lastSender.isNotEmpty
+                                          ? "$lastSender: $lastMessage"
+                                          : lastMessage,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        '👥 $memberCount members',
+                                        style: const TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    timeAgo,
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  if (group.messages.isNotEmpty)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 6),
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.lightBlueAccent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Text(
+                                        "1",
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },

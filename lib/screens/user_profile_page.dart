@@ -1,27 +1,289 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/chat_service.dart';  
+import 'chat_detail_page.dart'; 
 
-final userIdProvider = Provider.family<String, String>((ref, userId) {
-  return userId;
-});
+class UserProfilePage extends StatelessWidget {
+  final Map<String, dynamic> userData;
 
-class UserProfilePage extends ConsumerWidget {
-  final String userId;
+  const UserProfilePage({
+    Key? key,
+    required this.userData,
+  }) : super(key: key);
 
-  const UserProfilePage({Key? key, required this.userId}) : super(key: key);
+  Future<void> _openDirectChat(BuildContext context) async {
+  final userId = userData['_id'] ?? 
+                 userData['id'] ?? 
+                 userData['user_id'] ??  
+                 '';
+  final userName = userData['name'] ?? 'Unknown User';
+
+  print('🔍 Opening direct chat:');
+  print('   User ID: $userId');
+  print('   User Name: $userName');
+  print('   Available fields: ${userData.keys.toList()}'); 
+
+  if (userId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('❌ Invalid user ID'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final result = await ChatService.getOrCreateDirectChat(userId);
+
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
+
+      if (result['success']) {
+        final chat = result['chat'];
+        final chatId = chat['_id'] ?? chat['id'];
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(
+              chatId: chatId,
+              chatName: userName,
+              groupId: '',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message'] ?? 'Failed to open chat'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final userName = userData['name'] ?? 'Unknown User';
+    final userEmail = userData['email'] ?? 'No email';
+    final userBranch = userData['branch'] ?? '';
+    final userYear = userData['year'] ?? '';
+    final userId = userData['_id'] ?? userData['id'] ?? '';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Profile'),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 280,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xff1A237E),
+                      Color(0xff3949AB),
+                      Color(0xff5C6BC0),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 60),
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 56,
+                        backgroundColor: Colors.lightBlueAccent,
+                        child: Text(
+                          userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userEmail,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    if (userBranch.isNotEmpty || userYear.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '${userBranch}${userBranch.isNotEmpty && userYear.isNotEmpty ? ' • ' : ''}${userYear}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.white60,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xff0A1128),
+                    Color(0xff001F54),
+                    Color(0xff034078),
+                  ],
+                ),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+
+                  _buildInfoCard(
+                    icon: Icons.person,
+                    title: 'Name',
+                    value: userName,
+                  ),
+                  _buildInfoCard(
+                    icon: Icons.email,
+                    title: 'Email',
+                    value: userEmail,
+                  ),
+                  if (userBranch.isNotEmpty)
+                    _buildInfoCard(
+                      icon: Icons.school,
+                      title: 'Branch',
+                      value: userBranch,
+                    ),
+                  if (userYear.isNotEmpty)
+                    _buildInfoCard(
+                      icon: Icons.calendar_today,
+                      title: 'Year',
+                      value: userYear,
+                    ),
+                  if (userId.isNotEmpty)
+                    _buildInfoCard(
+                      icon: Icons.fingerprint,
+                      title: 'User ID',
+                      value: userId,
+                    ),
+
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _openDirectChat(context),
+                            icon: const Icon(Icons.chat),
+                            label: const Text('Message'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      body: Center(
-        child: Text(
-          'User Profile for user:\n$userId',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 22),
-        ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade800.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade600.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.lightBlueAccent, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white60,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
