@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/chat_service.dart';
 import '../services/socket_service.dart';
 
@@ -87,6 +88,10 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
   }
 
   void addMessage(dynamic message) {
+    if (state.messages.any((m) => m['_id'] == message['_id'])) {
+    print('⚠️ Duplicate message ignored');
+    return;
+  }
     state = state.copyWith(messages: [...state.messages, message]);
     print('➕ Message added via WebSocket');
   }
@@ -145,70 +150,71 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   @override
   void initState() {
     super.initState();
+     print('🔍 Socket connected status: ${SocketService.isConnected}');
     _initializeWebSocket();
   }
+  
 
   void _initializeWebSocket() async {
-    if (!SocketService.isConnected) {
-      await SocketService.connect();
-    }
-
-    SocketService.joinRoom(widget.chatId);
-
-    SocketService.onNewMessage((data) {
-      print('📥 New message received: $data');
-
-      if (mounted) {
-        ref.read(messagesProvider(widget.chatId).notifier).addMessage(data);
-        _scrollToBottom();
-      }
-    });
-
-    SocketService.onUserTyping((data) {
-      print('⌨️ User typing: $data');
-
-      if (mounted) {
-        setState(() {
-          _isOtherUserTyping = data['isTyping'] ?? false;
-        });
-      }
-    });
-
-    SocketService.markAsRead(widget.chatId);
+  print('🔍 Initializing WebSocket for chat: ${widget.chatId}');
+  
+  // Connect if not connected
+  if (!SocketService.isConnected) {
+    print('🔌 Socket not connected, connecting...');
+    await SocketService.connect();
+    
+    // Wait briefly for connection
+    await Future.delayed(Duration(milliseconds: 500));
   }
+  
+  // Join the chat room
+  SocketService.joinRoom(widget.chatId);
+  
+  // Listen for new messages
+  SocketService.onNewMessage((data) {
+    print('📥 NEW MESSAGE RECEIVED: $data');
+    
+    if (mounted) {
+      ref.read(messagesProvider(widget.chatId).notifier).addMessage(data);
+      _scrollToBottom();
+    }
+  });
+  
+  print('✅ WebSocket initialized');
+}
+
 
   @override
-  void dispose() {
-    SocketService.leaveRoom(widget.chatId);
-    SocketService.removeAllListeners();
+void dispose() {
+  SocketService.removeAllListeners();
+  _messageController.dispose();
+  _scrollController.dispose();
+  super.dispose();
+}
 
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
+Future<void> _sendMessage() async {
+  final content = _messageController.text.trim();
+
+  if (content.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('❌ Message cannot be empty'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 1),
+      ),
+    );
+    return;
   }
 
-  Future<void> _sendMessage() async {
-    final content = _messageController.text.trim();
+  // Send message
+  SocketService.sendMessage(
+    roomId: widget.chatId,
+    message: content,
+  );
 
-    if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Message cannot be empty'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 1),
-        ),
-      );
-      return;
-    }
-
-    SocketService.sendMessage(roomId: widget.chatId, message: content);
-
-    _messageController.clear();
-
-    SocketService.sendTypingStatus(widget.chatId, false);
-
-    _scrollToBottom();
-  }
+  _messageController.clear();
+  _scrollToBottom();
+}
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -251,7 +257,6 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            SocketService.leaveRoom(widget.chatId);
             SocketService.removeAllListeners();
             Navigator.pop(context);
           },
@@ -267,19 +272,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              _isOtherUserTyping ? 'typing...' : 'Online',
-              style: TextStyle(
-                fontSize: 12,
-                color: _isOtherUserTyping
-                    ? Colors.yellow[200]
-                    : Colors.green[200],
-                fontStyle: _isOtherUserTyping
-                    ? FontStyle.italic
-                    : FontStyle.normal,
-              ),
-            ),
+            
           ],
         ),
         actions: [
@@ -497,41 +490,36 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                                 fontSize: 14,
                                 color: Colors.black87,
                               ),
-                              onChanged: (text) {
-                                SocketService.sendTypingStatus(
-                                  widget.chatId,
-                                  text.isNotEmpty,
-                                );
-                              },
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.blue.shade600,
-                          child: IconButton(
-                            icon: messagesState.isSending
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.send,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                            onPressed: messagesState.isSending
-                                ? null
-                                : _sendMessage,
-                          ),
-                        ),
+  radius: 24,
+  backgroundColor: Colors.blue.shade600, // ✅ Always blue
+  child: IconButton(
+    icon: messagesState.isSending
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.white,
+              ),
+            ),
+          )
+        : const Icon(
+            Icons.send,
+            color: Colors.white,
+            size: 20,
+          ),
+    onPressed: messagesState.isSending
+        ? null
+        : _sendMessage, // ✅ Only check if sending
+  ),
+),
+
                       ],
                     ),
                   ),

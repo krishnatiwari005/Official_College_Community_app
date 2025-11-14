@@ -330,19 +330,6 @@ Widget build(BuildContext context) {
 
                               const SizedBox(height: 12),
 
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: _forgotPassword,
-                                  child: const Text(
-                                    'Forgot Password?',
-                                    style: TextStyle(color: Colors.cyanAccent),
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 10),
-
                       
                               Container(
                                 width: double.infinity,

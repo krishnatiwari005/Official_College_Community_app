@@ -56,6 +56,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _loadUserProfile();
     _loadUserLocation();
   }
+  Future<void> _deletePost(String postId) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete Post?'),
+      content: const Text('Are you sure you want to delete this post?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return;
+
+  try {
+    final result = await PostService.deletePost(postId);
+    if (!mounted) return;
+
+    if (result['success']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Post deleted successfully'), backgroundColor: Colors.green),
+      );
+      ref.refresh(userPostsProvider); // Refresh posts after delete
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('❌ ${result['message']}'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Error: $e'),
+      backgroundColor: Colors.red,
+    ));
+  }
+}
+
 
   Future<void> _loadUserProfile() async {
     try {
@@ -127,48 +172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Future<void> _deletePost(String postId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Post?'),
-        content: const Text('Are you sure you want to delete this post?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final result = await PostService.deletePost(postId);
-      if (!mounted) return;
-
-      if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('✅ Post deleted successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ));
-        ref.refresh(userPostsProvider);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('❌ ${result['message']}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
-      ));
-    }
-  }
+  
 
   /// Image picker + upload
   void _showImagePickerOptions() {

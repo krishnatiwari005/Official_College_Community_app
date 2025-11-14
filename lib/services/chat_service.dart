@@ -569,16 +569,15 @@ class ChatService {
       print('🗑️ Removing user: $userId from group: $groupId');
 
       final response = await http.put(
-        Uri.parse('$chatApiUrl/api/chat/group/remove'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'groupId': groupId,
-          'userId': userId,
-        }),
-      ).timeout(apiTimeout);
+  Uri.parse('$chatApiUrl/api/chat/remove/$groupId/$userId'),
+  headers: {
+    'Authorization': 'Bearer $token',
+    'Content-Type': 'application/json',
+  },
+  body: jsonEncode({
+    'userId': userId,
+  }),
+).timeout(apiTimeout);
 
       print('📊 Status: ${response.statusCode}');
 

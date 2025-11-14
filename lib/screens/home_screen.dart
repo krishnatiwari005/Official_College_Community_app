@@ -21,199 +21,195 @@ class HomeScreen extends ConsumerWidget {
     final postsAsync = ref.watch(postsProvider);
 
     return Scaffold(
-      body: NestedScrollView(
-        floatHeaderSlivers: true,
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverOverlapAbsorber(
-            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            sliver: SliverAppBar(
-              pinned: false,
-              floating: true,
-              snap: true,
-              elevation: 0,
-              toolbarHeight: 75,
-              backgroundColor: Colors.transparent,
-              scrolledUnderElevation: 0,
-              flexibleSpace: Container(
+  body: NestedScrollView(
+    floatHeaderSlivers: true,
+    headerSliverBuilder: (context, innerBoxIsScrolled) => [
+      SliverOverlapAbsorber(
+        handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+        sliver: SliverAppBar(
+          pinned: false,
+          floating: true,
+          snap: true,
+          elevation: 0,
+          toolbarHeight: 75,
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(166, 18, 4, 143),
+                  Color.fromARGB(166, 63, 11, 126),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          centerTitle: true,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Colors.white, Color(0xFFE3F2FD)],
+                ).createShader(bounds),
+                child: const Text(
+                  'CollabSpace',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 26,
+                    letterSpacing: 1.5,
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(1, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Image.asset(
+                "assets/images/logo.png",
+                height: 40,
+                width: 40,
+                fit: BoxFit.contain,
+              ),
+            ],
+          ),
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz, color: Colors.white, size: 28),
+              onSelected: (value) {
+                if (value == 'search_users') _showSearchUsersModal(context);
+                else if (value == 'search_posts') _showSearchPostsModal(context);
+              },
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: 'search_users',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_search, color: Colors.grey[700]),
+                      const SizedBox(width: 12),
+                      const Text('Search Users'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'search_posts',
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: Colors.grey[700]),
+                      const SizedBox(width: 12),
+                      const Text('Search Posts'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+    body: Builder(
+      builder: (context) {
+        final ScrollController innerController = PrimaryScrollController.of(context)!;
+        return SafeArea(
+          top: false,
+          child: Stack(
+            children: [
+              Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Color.fromARGB(166, 18, 4, 143),
-                      Color.fromARGB(166, 63, 11, 126),
+                      Color.fromARGB(255, 0, 0, 0),
+                      Color.fromARGB(255, 76, 48, 191),
+                      Color.fromARGB(255, 0, 0, 0),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
-              centerTitle: true,
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Colors.white, Color(0xFFE3F2FD)],
-                    ).createShader(bounds),
-                    child: const Text(
-                      'CollabSpace',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 26,
-                        letterSpacing: 1.5,
-                        color: Colors.white,
-                        fontFamily: 'Poppins',
-                        shadows: [
-                          Shadow(
-                            color: Colors.black26,
-                            offset: Offset(1, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Image.asset(
-                    "assets/images/logo.png",
-                    height: 40,
-                    width: 40,
-                    fit: BoxFit.contain,
-                  ),
-                ],
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                child: Container(color: Colors.white.withOpacity(0.03)),
               ),
-              actions: [
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_horiz, color: Colors.white, size: 28),
-                  onSelected: (value) {
-                    if (value == 'search_users') _showSearchUsersModal(context);
-                    else if (value == 'search_posts') _showSearchPostsModal(context);
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem(
-                      value: 'search_users',
-                      child: Row(
-                        children: [
-                          Icon(Icons.person_search, color: Colors.grey[700]),
-                          const SizedBox(width: 12),
-                          const Text('Search Users'),
-                        ],
-                      ),
+              RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(postsProvider);
+                  await Future.delayed(const Duration(milliseconds: 800));
+                },
+                child: CustomScrollView(
+                  controller: innerController,
+                  slivers: [
+                    SliverOverlapInjector(
+                      handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                     ),
-                    PopupMenuItem(
-                      value: 'search_posts',
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, color: Colors.grey[700]),
-                          const SizedBox(width: 12),
-                          const Text('Search Posts'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-        body: SafeArea(
-          top: false,
-          child: Builder(
-            builder: (context) {
-              return Stack(
-                children: [
-                  // Background gradient + heavy blur to produce glassmorphic look
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color.fromARGB(255, 0, 0, 0),
-                          Color.fromARGB(255, 76, 48, 191),
-                          Color.fromARGB(255, 0, 0, 0),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                  ),
-                  BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-                    child: Container(color: Colors.white.withOpacity(0.03)),
-                  ),
-
-                  CustomScrollView(
-                    slivers: [
-                      SliverOverlapInjector(
-                        handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                      ),
-
-                      SliverToBoxAdapter(
-                        child: RefreshIndicator(
-                          onRefresh: () async {
-                            ref.invalidate(postsProvider);
-                            await Future.delayed(const Duration(milliseconds: 800));
-                          },
-                          child: postsAsync.when(
-                            data: (posts) {
-                              if (posts.isEmpty) {
-                                return SizedBox(
-                                  height: MediaQuery.of(context).size.height * 0.7,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.post_add, size: 64, color: Colors.grey[400]),
-                                        const SizedBox(height: 20),
-                                        Text(
-                                          'No posts yet',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            color: Colors.grey[400],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
+                    SliverToBoxAdapter(
+                      child: postsAsync.when(
+                        data: (posts) {
+                          if (posts.isEmpty) {
+                            return SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.post_add, size: 64, color: Colors.grey[400]),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      'No posts yet',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey[400],
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }
-
-                              return ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                padding: const EdgeInsets.all(16),
-                                itemCount: posts.length,
-                                itemBuilder: (context, index) => PostCard(
-                                  post: posts[index],
-                                  onPostDeleted: () => ref.refresh(postsProvider),
+                                  ],
                                 ),
-                              );
-                            },
-                            loading: () => const SizedBox(
-                              height: 200,
-                              child: Center(child: CircularProgressIndicator()),
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: posts.length,
+                            itemBuilder: (context, index) => PostCard(
+                              post: posts[index],
+                              onPostDeleted: () => ref.refresh(postsProvider),
                             ),
-                            error: (err, _) => SizedBox(
-                              height: 200,
-                              child: Center(child: Text("Error: $err")),
-                            ),
-                          ),
+                          );
+                        },
+                        loading: () => const SizedBox(
+                          height: 200,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (err, _) => SizedBox(
+                          height: 200,
+                          child: Center(child: Text("Error: $err")),
                         ),
                       ),
-
-                      // Add a bottom padding so Movable button doesn't overlap last item
-                      SliverToBoxAdapter(child: SizedBox(height: 120)),
-                    ],
-                  ),
-
-                  // Movable ChatBot Button
-                  const MovableChatBotButton(),
-                ],
-              );
-            },
+                    ),
+                    SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
+              ),
+              const MovableChatBotButton(),
+            ],
           ),
-        ),
-      ),
-    );
+        );
+      },
+    ),
+  ),
+);
+
+
   }
 
   void _showSearchUsersModal(BuildContext context) {
